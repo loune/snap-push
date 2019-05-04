@@ -1,0 +1,59 @@
+{
+  "name": "snap-push",
+  "version": "1.0.0",
+  "description": "Deliver static website files to AWS S3 or Azure.",
+  "main": "dist/push.js",
+  "engines": {
+    "node": ">=8.10"
+  },
+  "scripts": {
+    "test": "yarn lint && yarn jest",
+    "lint": "npx eslint --ext .js,.ts src",
+    "build": "rm -rf dist && mkdir dist && yarn tsc",
+    "prepublish": "yarn build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loune/snap-push.git"
+  },
+  "keywords": [
+    "push",
+    "snapshot",
+    "static",
+    "website",
+    "AWS",
+    "azure"
+  ],
+  "author": "Loune Lam",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/loune/snap-push/issues"
+  },
+  "homepage": "https://github.com/loune/snap-push#readme",
+  "peerDependencies": {
+    "aws-sdk": "^2.444.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.12",
+    "@types/mime": "^2.0.1",
+    "@types/node": "^11.13.8",
+    "@typescript-eslint/eslint-plugin": "^1.7.0",
+    "@typescript-eslint/parser": "^1.7.0",
+    "aws-sdk": "^2.444.0",
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^4.2.0",
+    "eslint-import-resolver-typescript": "^1.1.1",
+    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-prettier": "^3.0.1",
+    "jest": "^24.7.1",
+    "prettier": "^1.17.0",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
+    "fast-glob": "^2.2.6",
+    "mime": "^2.4.2",
+    "p-limit": "^2.2.0"
+  }
+}
