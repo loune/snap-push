@@ -14,6 +14,13 @@ export interface PushOptions {
   providerOptions: any;
 }
 
+export interface PushResult {
+  /** Milliseconds it took to upload */
+  elasped: number;
+  uploadedFiles: string[];
+  uploadedKeys: string[];
+}
+
 async function readChars(filename: string, numOfChars: number): Promise<string> {
   const buf = [];
   let bufLen = 0;
@@ -61,6 +68,16 @@ function getProviderUpload(provider: PushOptions['provider'], providerOptions) {
   throw new Error(`Unknown provider ${provider}`);
 }
 
+export function pathTrimStart(path: string) {
+  if (path.startsWith('./')) {
+    path = path.substring(2);
+  }
+  if (path.startsWith('/')) {
+    path = path.substring(1);
+  }
+  return path;
+}
+
 export default async function push({
   files,
   concurrency,
@@ -68,17 +85,29 @@ export default async function push({
   provider,
   providerOptions,
   destPathPrefix,
-}: PushOptions): Promise<void> {
+}: PushOptions): Promise<PushResult> {
   const uploadFile = getProviderUpload(provider, providerOptions);
   const limit = pLimit(concurrency || 1);
   const filesFromGlob = await glob(files);
+  const uploadedFiles = [];
+  const uploadedKeys = [];
+  const startTime = Date.now();
   await Promise.all(
     filesFromGlob.map(file =>
       limit(async () => {
-        const fileName = file as string;
+        const fileName = pathTrimStart(file as string);
         const type = await getFileMimeType(fileName);
-        await uploadFile(fileName, `${destPathPrefix}${fileName}`, type, metadata);
+        const key = `${destPathPrefix}${fileName}`;
+        await uploadFile(fileName, key, type, metadata);
+        uploadedFiles.push(fileName);
+        uploadedKeys.push(key);
       })
     )
   );
+
+  return {
+    elasped: Date.now() - startTime,
+    uploadedFiles,
+    uploadedKeys,
+  };
 }
