@@ -1,4 +1,3 @@
-import fs from 'fs';
 import {
   Aborter,
   BlobURL,
@@ -8,8 +7,9 @@ import {
   ServiceURL,
   StorageURL,
 } from '@azure/storage-blob';
+import { UploadFileProvider } from './types';
 
-export default function uploadFileFactory(providerOptions) {
+export default function uploadFileFactory(providerOptions): UploadFileProvider {
   const { credential, account, containerName, makePublic, serviceUrl, ...otherProviderOptions } = providerOptions;
 
   if (!containerName) {

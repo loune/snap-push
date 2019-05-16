@@ -2,7 +2,7 @@ import mime from 'mime';
 import glob from 'fast-glob';
 import pLimit from 'p-limit';
 import fs from 'fs';
-import s3UploadFileFactory from './s3';
+import { UploadFileProvider } from './types';
 
 export interface PushOptions {
   files: string[];
@@ -10,8 +10,7 @@ export interface PushOptions {
   mimeTypes?: { [suffix: string]: string };
   concurrency?: number;
   destPathPrefix?: string;
-  provider: 'aws' | 'azure';
-  providerOptions: any;
+  provider: UploadFileProvider;
 }
 
 export interface PushResult {
@@ -57,17 +56,6 @@ async function getFileMimeType(filename: string): Promise<string> {
   return type;
 }
 
-function getProviderUpload(provider: PushOptions['provider'], providerOptions) {
-  switch (provider) {
-    case 'aws':
-      return s3UploadFileFactory(providerOptions);
-    default:
-      break;
-  }
-
-  throw new Error(`Unknown provider ${provider}`);
-}
-
 export function pathTrimStart(path: string) {
   if (path.startsWith('./')) {
     path = path.substring(2);
@@ -83,10 +71,9 @@ export default async function push({
   concurrency,
   metadata,
   provider,
-  providerOptions,
   destPathPrefix,
 }: PushOptions): Promise<PushResult> {
-  const uploadFile = getProviderUpload(provider, providerOptions);
+  const uploadFile = provider;
   const limit = pLimit(concurrency || 1);
   const filesFromGlob = await glob(files);
   const uploadedFiles = [];

@@ -10,8 +10,10 @@ test('s3 uploadFile', async () => {
   const options = { bucket: testBucketName };
   const uploadFile = uploadFileFactory(options);
 
+  // act
   await uploadFile(testFile, testKeyName, 'text/plain', null);
 
+  // assert
   const s3 = new AWS.S3();
   const data = await s3.getObject({ Bucket: testBucketName, Key: testKeyName }).promise();
 

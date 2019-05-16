@@ -29,6 +29,7 @@ test('azure uploadFile', async () => {
   // act
   await uploadFile(testFile, testKeyName, 'text/plain', null);
 
+  // assert
   const blobURL = BlobURL.fromContainerURL(containerURL, testKeyName);
   const downloadBlockBlobResponse = await blobURL.download(Aborter.none, 0);
 
