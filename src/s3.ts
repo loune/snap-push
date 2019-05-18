@@ -13,7 +13,12 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
     throw new Error('bucket is required for providerOptions');
   }
 
-  return async (srcFileName: string, destFileName: string, type: string, metadata: { [key: string]: string }) => {
+  return async (
+    srcFileName: string,
+    destFileName: string,
+    contentType: string,
+    metadata: { [key: string]: string }
+  ) => {
     const body: Readable = fs.createReadStream(srcFileName);
 
     // Upload the stream
@@ -24,7 +29,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
             Body: body,
             Bucket: bucket,
             Key: destFileName,
-            ContentType: type,
+            ContentType: contentType,
             Metadata: metadata,
             ACL: makePublic ? 'public-read' : undefined,
           },

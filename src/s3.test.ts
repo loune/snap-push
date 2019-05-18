@@ -20,6 +20,7 @@ test('s3 uploadFile', async () => {
   const fileStat = fs.statSync(testFile);
   expect(data.ContentLength).toBe(fileStat.size);
   expect(data.ContentType).toBe('text/plain');
+  expect(data.Body.toString()).toBe(fs.readFileSync(testFile).toString());
 
   await s3.deleteObject({ Key: testKeyName, Bucket: testBucketName }).promise();
 });

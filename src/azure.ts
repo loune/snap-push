@@ -10,7 +10,7 @@ import {
 import { UploadFileProvider } from './types';
 
 export default function uploadFileFactory(providerOptions): UploadFileProvider {
-  const { credential, account, containerName, makePublic, serviceUrl, ...otherProviderOptions } = providerOptions;
+  const { credential, account, containerName, serviceUrl } = providerOptions;
 
   if (!containerName) {
     throw new Error('containerName is required for providerOptions');
@@ -21,12 +21,17 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
   const serviceURLObj = new ServiceURL(serviceUrl || `https://${account}.blob.core.windows.net`, pipeline);
   const containerURL = ContainerURL.fromServiceURL(serviceURLObj, containerName);
 
-  return async (srcFileName: string, destFileName: string, type: string, metadata: { [key: string]: string }) => {
+  return async (
+    srcFileName: string,
+    destFileName: string,
+    contentType: string,
+    metadata: { [key: string]: string }
+  ) => {
     const blobURL = BlobURL.fromContainerURL(containerURL, destFileName);
     const blockBlobURL = BlockBlobURL.fromBlobURL(blobURL);
 
-    const uploadBlobResponse = await uploadFileToBlockBlob(Aborter.none, srcFileName, blockBlobURL, {
-      blobHTTPHeaders: { blobContentType: type },
+    await uploadFileToBlockBlob(Aborter.none, srcFileName, blockBlobURL, {
+      blobHTTPHeaders: { blobContentType: contentType },
       metadata,
     });
   };

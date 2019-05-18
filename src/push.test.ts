@@ -1,16 +1,20 @@
 import AWS from 'aws-sdk';
-import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter, BlobURL } from '@azure/storage-blob';
+import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter } from '@azure/storage-blob';
 import fg from 'fast-glob';
 import { BlobItem } from '@azure/storage-blob/typings/lib/generated/lib/models';
+import { Storage } from '@google-cloud/storage';
 import push, { pathTrimStart } from './push';
 import s3FileProvider from './s3';
 import azureFileProvider from './azure';
+import gcpFileProvider from './gcp';
 
-const testBucketName = 'pouch-test';
+const s3TestBucketName = 'pouch-test';
+
+jest.setTimeout(8000);
 
 test('push with s3', async () => {
   const prefix = '__test3/';
-  const providerOptions = { bucket: testBucketName };
+  const providerOptions = { bucket: s3TestBucketName };
   const pat = ['./src/**/*'];
   const filesFromPat = (await fg(pat)) as string[];
 
@@ -23,14 +27,14 @@ test('push with s3', async () => {
   expect(result.elasped).toBeGreaterThan(0);
 
   const s3 = new AWS.S3();
-  const s3result = await s3.listObjectsV2({ Bucket: testBucketName, Prefix: prefix }).promise();
+  const s3result = await s3.listObjectsV2({ Bucket: s3TestBucketName, Prefix: prefix }).promise();
   expect(s3result.Contents.map(x => x.Key).sort()).toEqual(
     filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort()
   );
   expect(s3result.Contents.map(x => x.Key).sort()).toEqual(result.uploadedKeys.sort());
 
   // cleanup
-  await Promise.all(result.uploadedKeys.map(key => s3.deleteObject({ Bucket: testBucketName, Key: key }).promise()));
+  await Promise.all(result.uploadedKeys.map(key => s3.deleteObject({ Bucket: s3TestBucketName, Key: key }).promise()));
 });
 
 test('push with azure', async () => {
@@ -54,7 +58,7 @@ test('push with azure', async () => {
   const serviceURL = new ServiceURL(providerOptions.serviceUrl, pipeline);
   const containerURL = ContainerURL.fromServiceURL(serviceURL, providerOptions.containerName);
 
-  const createContainerResponse = await containerURL.create(Aborter.none);
+  await containerURL.create(Aborter.none);
 
   // act
   const result = await push({ files: pat, provider: azureFileProvider(providerOptions), destPathPrefix: prefix });
@@ -80,5 +84,37 @@ test('push with azure', async () => {
   expect(blobs.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
 
   // cleanup
-  // await Promise.all(result.uploadedKeys.map(key => s3.deleteObject({ Bucket: testBucketName, Key: key }).promise()));
+  await containerURL.delete(Aborter.none);
+});
+
+test('push with gcp', async () => {
+  const gcpTestBucketName = 'snap-push-test';
+  const prefix = '__test3/';
+  const providerOptions = { bucket: gcpTestBucketName };
+  const pat = ['./src/**/*'];
+  const filesFromPat = (await fg(pat)) as string[];
+
+  // act
+  const result = await push({ files: pat, provider: gcpFileProvider(providerOptions), destPathPrefix: prefix });
+
+  // assert
+  expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
+  expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+  expect(result.elasped).toBeGreaterThan(0);
+
+  const storage = new Storage();
+  const [files] = await storage.bucket(gcpTestBucketName).getFiles({ prefix });
+
+  expect(files.map(x => x.name).sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+  expect(files.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
+
+  // cleanup;
+  await Promise.all(
+    result.uploadedKeys.map(key =>
+      storage
+        .bucket(gcpTestBucketName)
+        .file(key)
+        .delete()
+    )
+  );
 });

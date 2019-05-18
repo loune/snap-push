@@ -22,7 +22,7 @@ test('azure uploadFile', async () => {
   const serviceURL = new ServiceURL(options.serviceUrl, pipeline);
   const containerURL = ContainerURL.fromServiceURL(serviceURL, options.containerName);
 
-  const createContainerResponse = await containerURL.create(Aborter.none);
+  await containerURL.create(Aborter.none);
 
   const uploadFile = uploadFileFactory(options);
 
@@ -36,6 +36,19 @@ test('azure uploadFile', async () => {
   const fileStat = fs.statSync(testFile);
   expect(downloadBlockBlobResponse.contentLength).toBe(fileStat.size);
   expect(downloadBlockBlobResponse.contentType).toBe('text/plain');
+  const streamString = await new Promise((resolve, reject) => {
+    const buffers: Buffer[] = [];
+    downloadBlockBlobResponse.readableStreamBody.on('data', data => {
+      buffers.push(data);
+    });
+    downloadBlockBlobResponse.readableStreamBody.on('end', () => {
+      resolve(Buffer.concat(buffers).toString());
+    });
+    downloadBlockBlobResponse.readableStreamBody.on('error', err => {
+      reject(err);
+    });
+  });
+  expect(streamString).toBe(fs.readFileSync(testFile).toString());
 
-  // await s3.deleteObject({ Key: testKeyName, Bucket: testBucketName }).promise();
+  await containerURL.delete(Aborter.none);
 });

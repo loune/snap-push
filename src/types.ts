@@ -2,6 +2,6 @@
 export type UploadFileProvider = (
   srcFileName: string,
   destFileName: string,
-  type: string,
+  contentType: string,
   metadata: { [key: string]: string }
 ) => Promise<void>;
