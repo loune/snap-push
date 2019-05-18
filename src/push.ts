@@ -4,6 +4,8 @@ import pLimit from 'p-limit';
 import fs from 'fs';
 import { UploadFileProvider } from './types';
 
+const BUFFER_SIZE = 4 * 1024 * 1024;
+
 export interface PushOptions {
   files: string[];
   metadata?: { [key: string]: string };
@@ -85,7 +87,7 @@ export default async function push({
         const fileName = pathTrimStart(file as string);
         const type = await getFileMimeType(fileName);
         const key = `${destPathPrefix}${fileName}`;
-        await uploadFile(fileName, key, type, metadata);
+        await uploadFile(fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }), key, type, metadata);
         uploadedFiles.push(fileName);
         uploadedKeys.push(key);
       })

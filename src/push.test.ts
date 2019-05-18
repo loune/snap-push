@@ -10,7 +10,7 @@ import gcpFileProvider from './gcp';
 
 const s3TestBucketName = 'pouch-test';
 
-jest.setTimeout(8000);
+jest.setTimeout(30000);
 
 test('push with s3', async () => {
   const prefix = '__test3/';

@@ -11,7 +11,7 @@ test('s3 uploadFile', async () => {
   const uploadFile = uploadFileFactory(options);
 
   // act
-  await uploadFile(testFile, testKeyName, 'text/plain', null);
+  await uploadFile(fs.createReadStream(testFile), testKeyName, 'text/plain', null);
 
   // assert
   const s3 = new AWS.S3();

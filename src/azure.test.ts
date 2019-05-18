@@ -27,7 +27,7 @@ test('azure uploadFile', async () => {
   const uploadFile = uploadFileFactory(options);
 
   // act
-  await uploadFile(testFile, testKeyName, 'text/plain', null);
+  await uploadFile(fs.createReadStream(testFile), testKeyName, 'text/plain', null);
 
   // assert
   const blobURL = BlobURL.fromContainerURL(containerURL, testKeyName);

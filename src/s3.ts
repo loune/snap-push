@@ -1,4 +1,3 @@
-import fs from 'fs';
 import AWS from 'aws-sdk';
 import { Readable } from 'stream';
 import { UploadFileProvider } from './types';
@@ -13,20 +12,13 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
     throw new Error('bucket is required for providerOptions');
   }
 
-  return async (
-    srcFileName: string,
-    destFileName: string,
-    contentType: string,
-    metadata: { [key: string]: string }
-  ) => {
-    const body: Readable = fs.createReadStream(srcFileName);
-
+  return async (source: Readable, destFileName: string, contentType: string, metadata: { [key: string]: string }) => {
     // Upload the stream
     return new Promise(
       (resolve, reject): void => {
         myS3.upload(
           {
-            Body: body,
+            Body: source,
             Bucket: bucket,
             Key: destFileName,
             ContentType: contentType,

@@ -11,7 +11,7 @@ test('gcp uploadFile', async () => {
   const uploadFile = uploadFileFactory(options);
 
   // act
-  await uploadFile(testFile, testKeyName, 'text/plain', null);
+  await uploadFile(fs.createReadStream(testFile, { highWaterMark: 4 * 1024 * 1024 }), testKeyName, 'text/plain', null);
 
   // assert
   const storage = new Storage();
