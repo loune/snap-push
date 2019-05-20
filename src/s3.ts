@@ -1,6 +1,6 @@
 import AWS from 'aws-sdk';
 import { Readable } from 'stream';
-import { UploadFileProvider } from './types';
+import { UploadFileProvider, UploadFile } from './types';
 
 const isEmpty = obj => Object.keys(obj).length === 0 && obj.constructor === Object;
 
@@ -12,29 +12,50 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
     throw new Error('bucket is required for providerOptions');
   }
 
-  return async (source: Readable, destFileName: string, contentType: string, metadata: { [key: string]: string }) => {
-    // Upload the stream
-    return new Promise(
-      (resolve, reject): void => {
-        myS3.upload(
-          {
-            Body: source,
-            Bucket: bucket,
-            Key: destFileName,
-            ContentType: contentType,
-            Metadata: metadata,
-            ACL: makePublic ? 'public-read' : undefined,
-          },
-          (err): void => {
-            if (err) {
-              reject(err);
-              return;
+  return {
+    upload: async (
+      source: Readable,
+      destFileName: string,
+      contentType: string,
+      md5: string,
+      metadata: { [key: string]: string }
+    ) => {
+      // Upload the stream
+      return new Promise(
+        (resolve, reject): void => {
+          myS3.upload(
+            {
+              Body: source,
+              Bucket: bucket,
+              Key: destFileName,
+              ContentType: contentType,
+              Metadata: metadata,
+              ACL: makePublic ? 'public-read' : undefined,
+              ContentMD5: md5,
+            },
+            (err): void => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve();
             }
-            resolve();
-            // console.log(`Uploaded the file ${data.Location}`);
-          }
+          );
+        }
+      );
+    },
+    list: async (prefix: string) => {
+      const results: UploadFile[] = [];
+      let s3result: AWS.S3.ListObjectsV2Output;
+      do {
+        const lastToken = s3result ? s3result.NextContinuationToken : undefined;
+        // eslint-disable-next-line no-await-in-loop
+        s3result = await myS3.listObjectsV2({ Bucket: bucket, Prefix: prefix, ContinuationToken: lastToken }).promise();
+        s3result.Contents.map(x => ({ name: x.Key, md5: x.ETag.replace(/"/g, ''), size: x.Size })).forEach(x =>
+          results.push(x)
         );
-      }
-    );
+      } while (s3result.IsTruncated);
+      return results;
+    },
   };
 }

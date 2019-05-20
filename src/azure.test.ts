@@ -13,7 +13,7 @@ test('azure uploadFile', async () => {
       'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
     ),
     serviceUrl: `http://127.0.0.1:10000/${accountName}`,
-    containerName: `newcontainer${new Date().getTime()}`,
+    containerName: `snappushtest${new Date().getTime()}`,
   };
 
   // Create a container
@@ -27,7 +27,14 @@ test('azure uploadFile', async () => {
   const uploadFile = uploadFileFactory(options);
 
   // act
-  await uploadFile(fs.createReadStream(testFile), testKeyName, 'text/plain', null);
+  await uploadFile.upload(
+    fs.createReadStream(testFile),
+    testKeyName,
+    'text/plain',
+    '0f0d514cf6a4dbf1f5d74b7152f440d1',
+    null
+  );
+  const list = await uploadFile.list(testKeyName);
 
   // assert
   const blobURL = BlobURL.fromContainerURL(containerURL, testKeyName);
@@ -49,6 +56,7 @@ test('azure uploadFile', async () => {
     });
   });
   expect(streamString).toBe(fs.readFileSync(testFile).toString());
+  expect(list).toEqual([{ name: testKeyName, md5: '0f0d514cf6a4dbf1f5d74b7152f440d1', size: fileStat.size }]);
 
   await containerURL.delete(Aborter.none);
 });

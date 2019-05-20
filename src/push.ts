@@ -2,6 +2,7 @@ import mime from 'mime';
 import glob from 'fast-glob';
 import pLimit from 'p-limit';
 import fs from 'fs';
+import crypto from 'crypto';
 import { UploadFileProvider } from './types';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
@@ -58,6 +59,22 @@ async function getFileMimeType(filename: string): Promise<string> {
   return type;
 }
 
+async function getMD5(fileName: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const md5 = crypto.createHash('md5');
+    md5.setEncoding('hex');
+    const stream = fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE });
+    stream.on('end', () => {
+      md5.end();
+      resolve(md5.read());
+    });
+    stream.on('error', err => {
+      reject(err);
+    });
+    stream.pipe(md5);
+  });
+}
+
 export function pathTrimStart(path: string) {
   if (path.startsWith('./')) {
     path = path.substring(2);
@@ -75,19 +92,27 @@ export default async function push({
   provider,
   destPathPrefix,
 }: PushOptions): Promise<PushResult> {
-  const uploadFile = provider;
+  const uploadFileProvider = provider;
   const limit = pLimit(concurrency || 1);
   const filesFromGlob = await glob(files);
   const uploadedFiles = [];
   const uploadedKeys = [];
   const startTime = Date.now();
+
   await Promise.all(
     filesFromGlob.map(file =>
       limit(async () => {
         const fileName = pathTrimStart(file as string);
         const type = await getFileMimeType(fileName);
         const key = `${destPathPrefix}${fileName}`;
-        await uploadFile(fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }), key, type, metadata);
+        const hash = await getMD5(fileName);
+        await uploadFileProvider.upload(
+          fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }),
+          key,
+          type,
+          hash,
+          metadata
+        );
         uploadedFiles.push(fileName);
         uploadedKeys.push(key);
       })
