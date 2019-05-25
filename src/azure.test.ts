@@ -27,13 +27,12 @@ test('azure uploadFile', async () => {
   const uploadFile = uploadFileFactory(options);
 
   // act
-  await uploadFile.upload(
-    fs.createReadStream(testFile),
-    testKeyName,
-    'text/plain',
-    '0f0d514cf6a4dbf1f5d74b7152f440d1',
-    null
-  );
+  await uploadFile.upload({
+    source: fs.createReadStream(testFile),
+    destFileName: testKeyName,
+    contentType: 'text/plain',
+    md5Hash: '0f0d514cf6a4dbf1f5d74b7152f440d1',
+  });
   const list = await uploadFile.list(testKeyName);
 
   // assert

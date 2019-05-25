@@ -13,13 +13,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
   }
 
   return {
-    upload: async (
-      source: Readable,
-      destFileName: string,
-      contentType: string,
-      md5: string,
-      metadata: { [key: string]: string }
-    ) => {
+    upload: async ({ source, destFileName, contentType, md5Hash, metadata, cacheControl }) => {
       // Upload the stream
       return new Promise(
         (resolve, reject): void => {
@@ -31,7 +25,8 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
               ContentType: contentType,
               Metadata: metadata,
               ACL: makePublic ? 'public-read' : undefined,
-              ContentMD5: md5,
+              ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'),
+              CacheControl: cacheControl,
             },
             (err): void => {
               if (err) {

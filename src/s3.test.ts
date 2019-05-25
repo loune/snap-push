@@ -12,7 +12,12 @@ test('s3 uploadFile', async () => {
   const uploadFile = uploadFileFactory(options);
 
   // act
-  await uploadFile.upload(fs.createReadStream(testFile), testKeyName, 'text/plain', hash, null);
+  await uploadFile.upload({
+    source: fs.createReadStream(testFile),
+    destFileName: testKeyName,
+    contentType: 'text/plain',
+    md5Hash: hash,
+  });
   const list = await uploadFile.list(testKeyName);
 
   // assert

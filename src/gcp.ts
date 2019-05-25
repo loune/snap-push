@@ -1,5 +1,4 @@
 import { Storage } from '@google-cloud/storage';
-import { Readable } from 'stream';
 import { UploadFileProvider } from './types';
 
 export default function uploadFileFactory(providerOptions): UploadFileProvider {
@@ -13,13 +12,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
   const storageBucket = storage.bucket(bucket);
 
   return {
-    upload: (
-      source: Readable,
-      destFileName: string,
-      contentType: string,
-      md5: string,
-      metadata: { [key: string]: string }
-    ) => {
+    upload: ({ source, destFileName, contentType, metadata, cacheControl }) => {
       return new Promise((resolve, reject) => {
         const writeStream = storageBucket.file(destFileName).createWriteStream({
           // gzip: true,
@@ -27,7 +20,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
           public: makePublic,
           metadata: {
             ...metadata,
-            // cacheControl: 'public, max-age=31536000',
+            cacheControl,
           },
         });
         writeStream.on('error', err => {

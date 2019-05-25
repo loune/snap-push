@@ -26,20 +26,15 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
   const containerURL = ContainerURL.fromServiceURL(serviceURLObj, containerName);
 
   return {
-    upload: async (
-      source: Readable,
-      destFileName: string,
-      contentType: string,
-      md5: string,
-      metadata: { [key: string]: string }
-    ) => {
+    upload: async ({ source, destFileName, contentType, md5Hash, metadata, cacheControl }) => {
       const blobURL = BlobURL.fromContainerURL(containerURL, destFileName);
       const blockBlobURL = BlockBlobURL.fromBlobURL(blobURL);
 
       await uploadStreamToBlockBlob(Aborter.none, source, blockBlobURL, BUFFER_SIZE, MAX_BUFFER, {
         blobHTTPHeaders: {
           blobContentType: contentType,
-          blobContentMD5: new Uint8Array(Buffer.from(md5, 'hex')),
+          blobContentMD5: new Uint8Array(Buffer.from(md5Hash, 'hex')),
+          blobCacheControl: cacheControl,
         },
         metadata,
       });

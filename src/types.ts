@@ -6,14 +6,17 @@ export interface UploadFile {
   size: number;
 }
 
+export interface UploadArgs {
+  source: Readable;
+  destFileName: string;
+  contentType: string;
+  md5Hash: string;
+  metadata?: { [key: string]: string };
+  cacheControl?: string;
+}
+
 // eslint-disable-next-line import/prefer-default-export
 export interface UploadFileProvider {
-  upload: (
-    source: Readable,
-    destFileName: string,
-    contentType: string,
-    md5: string,
-    metadata: { [key: string]: string }
-  ) => Promise<void>;
+  upload: (args: UploadArgs) => Promise<void>;
   list: (prefix: string) => Promise<UploadFile[]>;
 }

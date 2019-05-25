@@ -14,6 +14,7 @@ export interface PushOptions {
   concurrency?: number;
   destPathPrefix?: string;
   provider: UploadFileProvider;
+  cacheControl?: string | ((filename: string) => string);
 }
 
 export interface PushResult {
@@ -53,8 +54,9 @@ export default async function push({
   files,
   concurrency,
   metadata,
-  provider,
   destPathPrefix,
+  provider,
+  cacheControl,
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = provider;
   const limit = pLimit(concurrency || 1);
@@ -63,21 +65,23 @@ export default async function push({
   const uploadedKeys = [];
   const startTime = Date.now();
   const defaultContentType = 'application/octet-stream';
+  const getCacheControl = typeof cacheControl === 'string' ? () => cacheControl : cacheControl;
 
   await Promise.all(
     filesFromGlob.map(file =>
       limit(async () => {
         const fileName = pathTrimStart(file as string);
-        const type = (await getFileMimeType(fileName)) || defaultContentType;
+        const contentType = (await getFileMimeType(fileName)) || defaultContentType;
         const key = `${destPathPrefix}${fileName}`;
-        const hash = await getMD5(fileName);
-        await uploadFileProvider.upload(
-          fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }),
-          key,
-          type,
-          hash,
-          metadata
-        );
+        const md5Hash = await getMD5(fileName);
+        await uploadFileProvider.upload({
+          source: fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }),
+          destFileName: key,
+          contentType,
+          md5Hash,
+          metadata,
+          cacheControl: getCacheControl ? getCacheControl(fileName) : undefined,
+        });
         uploadedFiles.push(fileName);
         uploadedKeys.push(key);
       })
