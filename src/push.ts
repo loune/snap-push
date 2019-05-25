@@ -1,9 +1,9 @@
-import mime from 'mime';
 import glob from 'fast-glob';
 import pLimit from 'p-limit';
 import fs from 'fs';
 import crypto from 'crypto';
 import { UploadFileProvider } from './types';
+import getFileMimeType from './contentType';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
 
@@ -21,42 +21,6 @@ export interface PushResult {
   elasped: number;
   uploadedFiles: string[];
   uploadedKeys: string[];
-}
-
-async function readChars(filename: string, numOfChars: number): Promise<string> {
-  const buf = [];
-  let bufLen = 0;
-  return new Promise(
-    (resolve, reject): void => {
-      const rs = fs.createReadStream(filename, { encoding: 'utf8' });
-      rs.on('data', chunk => {
-        buf.push(chunk);
-        bufLen += chunk.length;
-        if (bufLen >= numOfChars) {
-          rs.close();
-        }
-      })
-        .on('close', () => {
-          const str = buf.join('');
-          resolve(str.substring(0, Math.min(str.length, numOfChars)));
-        })
-        .on('error', err => {
-          reject(err);
-        });
-    }
-  );
-}
-
-async function getFileMimeType(filename: string): Promise<string> {
-  let type = mime.getType(filename);
-  if (type === null) {
-    const chars = await readChars(filename, 200);
-    if (chars.toLowerCase().indexOf('<html>')) {
-      type = mime.getType('.html');
-    }
-  }
-
-  return type;
 }
 
 async function getMD5(fileName: string): Promise<string> {
@@ -98,12 +62,13 @@ export default async function push({
   const uploadedFiles = [];
   const uploadedKeys = [];
   const startTime = Date.now();
+  const defaultContentType = 'application/octet-stream';
 
   await Promise.all(
     filesFromGlob.map(file =>
       limit(async () => {
         const fileName = pathTrimStart(file as string);
-        const type = await getFileMimeType(fileName);
+        const type = (await getFileMimeType(fileName)) || defaultContentType;
         const key = `${destPathPrefix}${fileName}`;
         const hash = await getMD5(fileName);
         await uploadFileProvider.upload(

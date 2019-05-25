@@ -1,7 +1,7 @@
 {
   "name": "snap-push",
   "version": "1.0.0",
-  "description": "Deliver static website files to AWS S3 or Azure.",
+  "description": "Deliver static website files to Amazon S3, Azure or GCP.",
   "main": "dist/push.js",
   "engines": {
     "node": ">=8.10"
@@ -22,7 +22,8 @@
     "static",
     "website",
     "AWS",
-    "azure"
+    "azure",
+    "gcp"
   ],
   "author": "Loune Lam",
   "license": "MIT",

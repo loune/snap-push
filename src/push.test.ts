@@ -108,7 +108,7 @@ test('push with gcp', async () => {
   expect(files.map(x => x.name).sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
   expect(files.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
 
-  // cleanup;
+  // cleanup
   await Promise.all(
     result.uploadedKeys.map(key =>
       storage
