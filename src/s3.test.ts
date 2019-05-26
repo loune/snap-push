@@ -31,5 +31,7 @@ test('s3 uploadFile', async () => {
 
   expect(list).toEqual([{ name: testKeyName, md5: hash, size: fileStat.size }]);
 
-  await s3.deleteObject({ Key: testKeyName, Bucket: testBucketName }).promise();
+  await uploadFile.delete(testKeyName);
+  const listAfterDelete = await uploadFile.list(testKeyName);
+  expect(listAfterDelete).toEqual([]);
 });

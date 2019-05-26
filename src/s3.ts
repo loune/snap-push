@@ -1,5 +1,4 @@
 import AWS from 'aws-sdk';
-import { Readable } from 'stream';
 import { UploadFileProvider, UploadFile } from './types';
 
 const isEmpty = obj => Object.keys(obj).length === 0 && obj.constructor === Object;
@@ -51,6 +50,9 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
         );
       } while (s3result.IsTruncated);
       return results;
+    },
+    delete: async (key: string) => {
+      await myS3.deleteObject({ Bucket: bucket, Key: key }).promise();
     },
   };
 }

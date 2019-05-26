@@ -57,5 +57,10 @@ test('azure uploadFile', async () => {
   expect(streamString).toBe(fs.readFileSync(testFile).toString());
   expect(list).toEqual([{ name: testKeyName, md5: '0f0d514cf6a4dbf1f5d74b7152f440d1', size: fileStat.size }]);
 
+  await uploadFile.delete(testKeyName);
+
+  const listAfterDelete = await uploadFile.list(testKeyName);
+  expect(listAfterDelete).toEqual([]);
+
   await containerURL.delete(Aborter.none);
 });

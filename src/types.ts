@@ -19,4 +19,5 @@ export interface UploadArgs {
 export interface UploadFileProvider {
   upload: (args: UploadArgs) => Promise<void>;
   list: (prefix: string) => Promise<UploadFile[]>;
+  delete: (key: string) => Promise<void>;
 }

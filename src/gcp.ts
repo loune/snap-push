@@ -43,5 +43,8 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
         size: Number(f.metadata.size),
       }));
     },
+    delete: async (key: string) => {
+      await storageBucket.file(key).delete();
+    },
   };
 }

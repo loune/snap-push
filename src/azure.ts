@@ -7,7 +7,6 @@ import {
   StorageURL,
   uploadStreamToBlockBlob,
 } from '@azure/storage-blob';
-import { Readable } from 'stream';
 import { UploadFileProvider, UploadFile } from './types';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
@@ -56,6 +55,11 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
           .forEach(x => results.push(x));
       } while (marker);
       return results;
+    },
+    delete: async (key: string) => {
+      const blobURL = BlobURL.fromContainerURL(containerURL, key);
+      const blockBlobURL = BlockBlobURL.fromBlobURL(blobURL);
+      await blockBlobURL.delete(Aborter.none);
     },
   };
 }
