@@ -39,7 +39,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
       });
     },
     list: async (prefix: string) => {
-      let marker;
+      let marker: string;
       const results: UploadFile[] = [];
 
       do {

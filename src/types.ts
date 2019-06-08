@@ -21,3 +21,9 @@ export interface UploadFileProvider {
   list: (prefix: string) => Promise<UploadFile[]>;
   delete: (key: string) => Promise<void>;
 }
+
+export interface AbstractLogger {
+  info: (...args) => void;
+  warn: (...args) => void;
+  error: (...args) => void;
+}

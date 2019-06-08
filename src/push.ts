@@ -2,7 +2,7 @@ import glob from 'fast-glob';
 import pLimit from 'p-limit';
 import fs from 'fs';
 import crypto from 'crypto';
-import { UploadFileProvider, UploadFile } from './types';
+import { UploadFileProvider, UploadFile, AbstractLogger } from './types';
 import getFileMimeType from './contentType';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
@@ -17,8 +17,9 @@ export interface PushOptions {
   provider: UploadFileProvider;
   cacheControl?: string | ((filename: string) => string);
   onlyUploadChanges?: boolean;
-  shouldDeleteExtraFiles?: string | ((extraFile: UploadFile) => boolean);
+  shouldDeleteExtraFiles?: boolean | ((extraFile: UploadFile) => boolean);
   uploadNewFilesFirst?: boolean;
+  logger?: AbstractLogger;
 }
 
 export interface PushResult {
@@ -63,8 +64,10 @@ export default async function push({
   destPathPrefix,
   provider,
   cacheControl,
-  onlyUploadChanges,
-  shouldDeleteExtraFiles,
+  onlyUploadChanges = true,
+  shouldDeleteExtraFiles = false,
+  uploadNewFilesFirst = true,
+  logger = { info() {}, warn() {}, error() {} },
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = provider;
   const limit = pLimit(concurrency || 1);
@@ -77,10 +80,25 @@ export default async function push({
   const getCacheControl = typeof cacheControl === 'string' ? () => cacheControl : cacheControl;
   let existingFiles: UploadFile[] = [];
   const existingFilesMap = new Map<string, UploadFile>();
-  if (onlyUploadChanges || shouldDeleteExtraFiles) {
+  if (onlyUploadChanges || shouldDeleteExtraFiles || uploadNewFilesFirst) {
     existingFiles = await provider.list(destPathPrefix);
     existingFiles.forEach(file => {
-      existingFilesMap[file.name] = file;
+      existingFilesMap.set(file.name, file);
+    });
+  }
+
+  if (uploadNewFilesFirst) {
+    // sort new files first
+    filesFromGlob.sort((a, b) => {
+      const keyAExists = existingFilesMap.get(`${destPathPrefix}${pathTrimStart(a as string)}`);
+      const keyBExists = existingFilesMap.get(`${destPathPrefix}${pathTrimStart(b as string)}`);
+      if (keyAExists && !keyBExists) {
+        return -1;
+      }
+      if (!keyAExists && keyBExists) {
+        return 1;
+      }
+      return 0;
     });
   }
 
@@ -88,13 +106,14 @@ export default async function push({
     filesFromGlob.map(file =>
       limit(async () => {
         const fileName = pathTrimStart(file as string);
-        const contentType = (await getFileMimeType(fileName)) || defaultContentType;
         const key = `${destPathPrefix}${fileName}`;
+        const contentType = (await getFileMimeType(fileName)) || defaultContentType;
         const md5Hash = await getMD5(fileName);
         processedKeys.push(key);
         const existingFile = existingFilesMap.get(key);
         if (existingFile && existingFile.md5 === md5Hash) {
           // same file
+          logger.info(`Skipped ${key} as there were no changes`);
           return;
         }
         await uploadFileProvider.upload({
@@ -105,6 +124,7 @@ export default async function push({
           metadata,
           cacheControl: getCacheControl ? getCacheControl(fileName) : undefined,
         });
+        logger.info(`Uploaded ${key} of type ${contentType} hash ${md5Hash}`);
         uploadedFiles.push(fileName);
         uploadedKeys.push(key);
       })
@@ -125,6 +145,7 @@ export default async function push({
         limit(async () => {
           if (shouldDeleteExtraFilesFunc(file)) {
             await uploadFileProvider.delete(file.name);
+            logger.info(`Deleted ${file.name} as it no longer exists in source`);
             deletedKeys.push(file.name);
           }
         })
