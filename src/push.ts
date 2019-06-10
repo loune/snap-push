@@ -61,7 +61,7 @@ export default async function push({
   files,
   concurrency,
   metadata,
-  destPathPrefix,
+  destPathPrefix = '',
   provider,
   cacheControl,
   onlyUploadChanges = true,
@@ -133,9 +133,9 @@ export default async function push({
 
   const deletedKeys = [];
   if (shouldDeleteExtraFiles) {
-    const processedKeysMap = new Map<string, UploadFile>();
+    const processedKeysMap = new Map<string, string>();
     processedKeys.forEach(file => {
-      processedKeysMap[file] = file;
+      processedKeysMap.set(file, file);
     });
     const extraFiles = existingFiles.filter(file => processedKeysMap.get(file.name) === undefined);
     const shouldDeleteExtraFilesFunc =

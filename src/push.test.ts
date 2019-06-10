@@ -3,14 +3,80 @@ import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter } fr
 import fg from 'fast-glob';
 import { BlobItem } from '@azure/storage-blob/typings/lib/generated/lib/models';
 import { Storage } from '@google-cloud/storage';
+import { Writable } from 'stream';
 import push, { pathTrimStart } from './push';
 import s3FileProvider from './s3';
 import azureFileProvider from './azure';
 import gcpFileProvider from './gcp';
+import { UploadFileProvider, UploadFile } from './types';
 
 const s3TestBucketName = 'pouch-test';
 
 jest.setTimeout(30000);
+
+class LengthStream extends Writable {
+  size: 0;
+
+  _write(chunk, enc, cb) {
+    // store chunk, then call cb when done
+    this.size += chunk.length;
+    cb();
+  }
+}
+
+function getMockProvider(initalFiles: UploadFile[]) {
+  let files: UploadFile[] = [...initalFiles];
+  const mockProvider: UploadFileProvider = {
+    async upload(args) {
+      const lstream = new LengthStream({});
+      args.source.pipe(lstream);
+      files.push({ md5: args.md5Hash, name: args.destFileName, size: lstream.size });
+    },
+    async list(prefix) {
+      return files;
+    },
+    async delete(key) {
+      files = files.filter(f => f.name !== key);
+    },
+  };
+  return mockProvider;
+}
+
+test('delete files that no longer exists', async () => {
+  const pat = ['./src/**/*'];
+  const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf' }];
+  const provider = getMockProvider(initialFiles);
+
+  // act
+  const result = await push({ shouldDeleteExtraFiles: true, files: pat, provider });
+
+  // assert
+  expect(result.deletedKeys.sort()).toEqual(initialFiles.map(f => f.name).sort());
+});
+
+test('do not delete files that no longer exists', async () => {
+  const pat = ['./src/**/*'];
+  const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf' }];
+  const provider = getMockProvider(initialFiles);
+
+  // act
+  const result = await push({ files: pat, provider });
+
+  // assert
+  expect(result.deletedKeys.sort()).toEqual([]);
+});
+
+test('do not delete files that no longer exists with func', async () => {
+  const pat = ['./src/**/*'];
+  const initialFiles = [{ shouldDeleteExtraFiles: () => false, name: 'f1', size: 4, md5: 'sdf' }];
+  const provider = getMockProvider(initialFiles);
+
+  // act
+  const result = await push({ files: pat, provider });
+
+  // assert
+  expect(result.deletedKeys.sort()).toEqual([]);
+});
 
 test('push with s3', async () => {
   const prefix = '__test3/';
