@@ -71,6 +71,7 @@ require('yargs') // eslint-disable-line
         destPathPrefix: argv.prefix,
         logger,
         concurrency: argv.concurrency,
+        makePublic: argv.public,
       }).then(result => {
         logger.info(
           `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
@@ -92,4 +93,7 @@ require('yargs') // eslint-disable-line
   })
   .option('accountKey', {
     default: null,
+  })
+  .option('public', {
+    default: false,
   }).argv;

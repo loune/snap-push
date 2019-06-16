@@ -14,6 +14,7 @@ export interface UploadArgs {
   md5Hash: string;
   metadata?: { [key: string]: string };
   cacheControl?: string;
+  makePublic?: boolean;
 }
 
 // eslint-disable-next-line import/prefer-default-export

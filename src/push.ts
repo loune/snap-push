@@ -20,6 +20,8 @@ export interface PushOptions {
   shouldDeleteExtraFiles?: boolean | ((extraFile: UploadFile) => boolean);
   uploadNewFilesFirst?: boolean;
   listIncludeMetadata?: boolean;
+  /** Set file to be publicly accessible */
+  makePublic?: boolean | ((filename: string) => boolean);
   logger?: AbstractLogger;
 }
 
@@ -70,6 +72,7 @@ export default async function push({
   shouldDeleteExtraFiles = false,
   uploadNewFilesFirst = true,
   listIncludeMetadata = false,
+  makePublic = false,
   logger = { info() {}, warn() {}, error() {} },
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = provider;
@@ -82,6 +85,7 @@ export default async function push({
   const startTime = Date.now();
   const defaultContentType = 'application/octet-stream';
   const getCacheControl = typeof cacheControl === 'string' ? () => cacheControl : cacheControl;
+  const getMakePublic = typeof makePublic === 'boolean' ? () => makePublic : makePublic;
   let existingFiles: UploadFile[] = [];
   const existingFilesMap = new Map<string, UploadFile>();
   if (onlyUploadChanges || shouldDeleteExtraFiles || uploadNewFilesFirst) {
@@ -128,6 +132,7 @@ export default async function push({
           md5Hash,
           metadata,
           cacheControl: getCacheControl ? getCacheControl(fileName) : undefined,
+          makePublic: getMakePublic ? getMakePublic(fileName) : undefined,
         });
         logger.info(`Uploaded ${key} of type ${contentType} hash ${md5Hash}`);
         uploadedFiles.push(fileName);

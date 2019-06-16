@@ -2,7 +2,7 @@ import { Storage } from '@google-cloud/storage';
 import { UploadFileProvider } from './types';
 
 export default function uploadFileFactory(providerOptions): UploadFileProvider {
-  const { bucket, makePublic, ...otherProviderOptions } = providerOptions;
+  const { bucket, ...otherProviderOptions } = providerOptions;
 
   if (!bucket) {
     throw new Error('bucket is required for providerOptions');
@@ -12,7 +12,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
   const storageBucket = storage.bucket(bucket);
 
   return {
-    upload: ({ source, destFileName, contentType, metadata, cacheControl }) => {
+    upload: ({ source, destFileName, contentType, metadata, cacheControl, makePublic }) => {
       return new Promise((resolve, reject) => {
         const writeStream = storageBucket.file(destFileName).createWriteStream({
           // gzip: true,
