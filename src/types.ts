@@ -4,6 +4,7 @@ export interface UploadFile {
   name: string;
   md5: string;
   size: number;
+  metadata: { [key: string]: string };
 }
 
 export interface UploadArgs {
@@ -18,7 +19,7 @@ export interface UploadArgs {
 // eslint-disable-next-line import/prefer-default-export
 export interface UploadFileProvider {
   upload: (args: UploadArgs) => Promise<void>;
-  list: (prefix: string) => Promise<UploadFile[]>;
+  list: (prefix: string, includeMetadata: boolean) => Promise<UploadFile[]>;
   delete: (key: string) => Promise<void>;
 }
 

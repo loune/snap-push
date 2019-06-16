@@ -19,7 +19,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
           contentType,
           public: makePublic,
           metadata: {
-            ...metadata,
+            metadata,
             cacheControl,
           },
         });
@@ -35,12 +35,13 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
         );
       });
     },
-    list: async (prefix: string) => {
+    list: async (prefix: string, includeMetadata: boolean) => {
       const [files] = await storageBucket.getFiles({ prefix, autoPaginate: true });
       return files.map(f => ({
         name: f.name,
         md5: Buffer.from(f.metadata.md5Hash, 'base64').toString('hex'),
         size: Number(f.metadata.size),
+        metadata: f.metadata.metadata,
       }));
     },
     delete: async (key: string) => {

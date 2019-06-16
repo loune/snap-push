@@ -38,19 +38,23 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
         metadata,
       });
     },
-    list: async (prefix: string) => {
+    list: async (prefix: string, includeMetadata: boolean) => {
       let marker: string;
       const results: UploadFile[] = [];
 
       do {
         // eslint-disable-next-line no-await-in-loop
-        const response = await containerURL.listBlobFlatSegment(Aborter.none, marker, { prefix });
+        const response = await containerURL.listBlobFlatSegment(Aborter.none, marker, {
+          prefix,
+          ...(includeMetadata ? { include: ['metadata'] } : {}),
+        });
         marker = response.nextMarker;
         response.segment.blobItems
           .map(x => ({
             name: x.name,
             md5: x.properties.contentMD5 ? Buffer.from(x.properties.contentMD5).toString('hex') : null,
             size: x.properties.contentLength,
+            metadata: x.metadata || {},
           }))
           .forEach(x => results.push(x));
       } while (marker);

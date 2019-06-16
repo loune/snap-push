@@ -32,8 +32,9 @@ test('azure uploadFile', async () => {
     destFileName: testKeyName,
     contentType: 'text/plain',
     md5Hash: '0f0d514cf6a4dbf1f5d74b7152f440d1',
+    metadata: { test: 'azure' },
   });
-  const list = await uploadFile.list(testKeyName);
+  const list = await uploadFile.list(testKeyName, true);
 
   // assert
   const blobURL = BlobURL.fromContainerURL(containerURL, testKeyName);
@@ -55,11 +56,13 @@ test('azure uploadFile', async () => {
     });
   });
   expect(streamString).toBe(fs.readFileSync(testFile).toString());
-  expect(list).toEqual([{ name: testKeyName, md5: '0f0d514cf6a4dbf1f5d74b7152f440d1', size: fileStat.size }]);
+  expect(list).toEqual([
+    { name: testKeyName, md5: '0f0d514cf6a4dbf1f5d74b7152f440d1', size: fileStat.size, metadata: { test: 'azure' } },
+  ]);
 
   await uploadFile.delete(testKeyName);
 
-  const listAfterDelete = await uploadFile.list(testKeyName);
+  const listAfterDelete = await uploadFile.list(testKeyName, false);
   expect(listAfterDelete).toEqual([]);
 
   await containerURL.delete(Aborter.none);

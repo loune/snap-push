@@ -1,10 +1,11 @@
 import AWS from 'aws-sdk';
+import pLimit from 'p-limit';
 import { UploadFileProvider, UploadFile } from './types';
 
 const isEmpty = obj => Object.keys(obj).length === 0 && obj.constructor === Object;
 
 export default function uploadFileFactory(providerOptions): UploadFileProvider {
-  const { bucket, makePublic, ...otherProviderOptions } = providerOptions;
+  const { bucket, makePublic, listMetaDataConcurrency = 1, ...otherProviderOptions } = providerOptions;
   const myS3 = !isEmpty(otherProviderOptions) ? new AWS.S3(otherProviderOptions) : new AWS.S3();
 
   if (!bucket) {
@@ -38,17 +39,33 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
         }
       );
     },
-    list: async (prefix: string) => {
+    list: async (prefix: string, includeMetadata: boolean) => {
       const results: UploadFile[] = [];
       let s3result: AWS.S3.ListObjectsV2Output;
       do {
         const lastToken = s3result ? s3result.NextContinuationToken : undefined;
         // eslint-disable-next-line no-await-in-loop
         s3result = await myS3.listObjectsV2({ Bucket: bucket, Prefix: prefix, ContinuationToken: lastToken }).promise();
-        s3result.Contents.map(x => ({ name: x.Key, md5: x.ETag.replace(/"/g, ''), size: x.Size })).forEach(x =>
-          results.push(x)
-        );
+        s3result.Contents.map(x => ({
+          name: x.Key,
+          md5: x.ETag.replace(/"/g, ''),
+          size: x.Size,
+          metadata: {},
+        })).forEach(x => results.push(x));
       } while (s3result.IsTruncated);
+
+      if (includeMetadata) {
+        const limit = pLimit(listMetaDataConcurrency || 1);
+        await Promise.all(
+          results.map(x =>
+            limit(async () => {
+              const response = await myS3.headObject({ Bucket: bucket, Key: x.name }).promise();
+              x.metadata = response.Metadata;
+            })
+          )
+        );
+      }
+
       return results;
     },
     delete: async (key: string) => {

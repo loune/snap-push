@@ -17,8 +17,9 @@ test('s3 uploadFile', async () => {
     destFileName: testKeyName,
     contentType: 'text/plain',
     md5Hash: hash,
+    metadata: { test: 's3' },
   });
-  const list = await uploadFile.list(testKeyName);
+  const list = await uploadFile.list(testKeyName, true);
 
   // assert
   const s3 = new AWS.S3();
@@ -29,9 +30,9 @@ test('s3 uploadFile', async () => {
   expect(data.ContentType).toBe('text/plain');
   expect(data.Body.toString()).toBe(fs.readFileSync(testFile).toString());
 
-  expect(list).toEqual([{ name: testKeyName, md5: hash, size: fileStat.size }]);
+  expect(list).toEqual([{ name: testKeyName, md5: hash, size: fileStat.size, metadata: { test: 's3' } }]);
 
   await uploadFile.delete(testKeyName);
-  const listAfterDelete = await uploadFile.list(testKeyName);
+  const listAfterDelete = await uploadFile.list(testKeyName, false);
   expect(listAfterDelete).toEqual([]);
 });

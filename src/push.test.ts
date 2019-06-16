@@ -30,9 +30,9 @@ function getMockProvider(initalFiles: UploadFile[]) {
     async upload(args) {
       const lstream = new LengthStream({});
       args.source.pipe(lstream);
-      files.push({ md5: args.md5Hash, name: args.destFileName, size: lstream.size });
+      files.push({ md5: args.md5Hash, name: args.destFileName, size: lstream.size, metadata: {} });
     },
-    async list(prefix) {
+    async list(prefix, includeMetadata) {
       return files;
     },
     async delete(key) {
@@ -44,7 +44,7 @@ function getMockProvider(initalFiles: UploadFile[]) {
 
 test('delete files that no longer exists', async () => {
   const pat = ['./src/**/*'];
-  const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf' }];
+  const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf', metadata: {} }];
   const provider = getMockProvider(initialFiles);
 
   // act
@@ -56,7 +56,7 @@ test('delete files that no longer exists', async () => {
 
 test('do not delete files that no longer exists', async () => {
   const pat = ['./src/**/*'];
-  const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf' }];
+  const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf', metadata: {} }];
   const provider = getMockProvider(initialFiles);
 
   // act
@@ -68,7 +68,7 @@ test('do not delete files that no longer exists', async () => {
 
 test('do not delete files that no longer exists with func', async () => {
   const pat = ['./src/**/*'];
-  const initialFiles = [{ shouldDeleteExtraFiles: () => false, name: 'f1', size: 4, md5: 'sdf' }];
+  const initialFiles = [{ shouldDeleteExtraFiles: () => false, name: 'f1', size: 4, md5: 'sdf', metadata: {} }];
   const provider = getMockProvider(initialFiles);
 
   // act

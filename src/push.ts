@@ -19,6 +19,7 @@ export interface PushOptions {
   onlyUploadChanges?: boolean;
   shouldDeleteExtraFiles?: boolean | ((extraFile: UploadFile) => boolean);
   uploadNewFilesFirst?: boolean;
+  listIncludeMetadata?: boolean;
   logger?: AbstractLogger;
 }
 
@@ -67,6 +68,7 @@ export default async function push({
   onlyUploadChanges = true,
   shouldDeleteExtraFiles = false,
   uploadNewFilesFirst = true,
+  listIncludeMetadata = false,
   logger = { info() {}, warn() {}, error() {} },
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = provider;
@@ -81,7 +83,7 @@ export default async function push({
   let existingFiles: UploadFile[] = [];
   const existingFilesMap = new Map<string, UploadFile>();
   if (onlyUploadChanges || shouldDeleteExtraFiles || uploadNewFilesFirst) {
-    existingFiles = await provider.list(destPathPrefix);
+    existingFiles = await provider.list(destPathPrefix, listIncludeMetadata);
     existingFiles.forEach(file => {
       existingFilesMap.set(file.name, file);
     });
