@@ -12,7 +12,7 @@ import { UploadFileProvider, UploadFile } from './types';
 
 const s3TestBucketName = 'pouch-test';
 
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 
 class LengthStream extends Writable {
   size: 0;
@@ -85,7 +85,12 @@ test('push with s3', async () => {
   const filesFromPat = (await fg(pat)) as string[];
 
   // act
-  const result = await push({ files: pat, provider: s3FileProvider(providerOptions), destPathPrefix: prefix });
+  const result = await push({
+    files: pat,
+    provider: s3FileProvider(providerOptions),
+    destPathPrefix: prefix,
+    onlyUploadChanges: false,
+  });
 
   // assert
   expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
@@ -127,7 +132,12 @@ test('push with azure', async () => {
   await containerURL.create(Aborter.none);
 
   // act
-  const result = await push({ files: pat, provider: azureFileProvider(providerOptions), destPathPrefix: prefix });
+  const result = await push({
+    files: pat,
+    provider: azureFileProvider(providerOptions),
+    destPathPrefix: prefix,
+    onlyUploadChanges: false,
+  });
 
   // assert
   expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
@@ -161,7 +171,12 @@ test('push with gcp', async () => {
   const filesFromPat = (await fg(pat)) as string[];
 
   // act
-  const result = await push({ files: pat, provider: gcpFileProvider(providerOptions), destPathPrefix: prefix });
+  const result = await push({
+    files: pat,
+    provider: gcpFileProvider(providerOptions),
+    destPathPrefix: prefix,
+    onlyUploadChanges: false,
+  });
 
   // assert
   expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());

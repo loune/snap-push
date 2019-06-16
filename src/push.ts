@@ -119,7 +119,7 @@ export default async function push({
         const md5Hash = await getMD5(fileName);
         processedKeys.push(key);
         const existingFile = existingFilesMap.get(key);
-        if (existingFile && existingFile.md5 === md5Hash) {
+        if (onlyUploadChanges && existingFile && existingFile.md5 === md5Hash) {
           // same file
           skippedKeys.push(key);
           logger.info(`Skipped ${key} as there were no changes`);
