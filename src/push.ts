@@ -29,6 +29,7 @@ export interface PushResult {
   uploadedFiles: string[];
   uploadedKeys: string[];
   deletedKeys: string[];
+  skippedKeys: string[];
 }
 
 async function getMD5(fileName: string): Promise<string> {
@@ -76,6 +77,7 @@ export default async function push({
   const filesFromGlob = await glob(files, { ...(currentWorkingDirectory ? { cwd: currentWorkingDirectory } : {}) });
   const uploadedFiles: string[] = [];
   const uploadedKeys: string[] = [];
+  const skippedKeys: string[] = [];
   const processedKeys: string[] = [];
   const startTime = Date.now();
   const defaultContentType = 'application/octet-stream';
@@ -115,6 +117,7 @@ export default async function push({
         const existingFile = existingFilesMap.get(key);
         if (existingFile && existingFile.md5 === md5Hash) {
           // same file
+          skippedKeys.push(key);
           logger.info(`Skipped ${key} as there were no changes`);
           return;
         }
@@ -160,5 +163,6 @@ export default async function push({
     uploadedFiles,
     uploadedKeys,
     deletedKeys,
+    skippedKeys,
   };
 }

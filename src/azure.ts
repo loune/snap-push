@@ -19,6 +19,10 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
     throw new Error('containerName is required for providerOptions');
   }
 
+  if (!serviceUrl && !account) {
+    throw new Error('account or serviceUrl is required for providerOptions');
+  }
+
   const pipeline = StorageURL.newPipeline(credential);
 
   const serviceURLObj = new ServiceURL(serviceUrl || `https://${account}.blob.core.windows.net`, pipeline);
