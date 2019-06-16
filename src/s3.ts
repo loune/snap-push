@@ -5,7 +5,7 @@ import { UploadFileProvider, UploadFile } from './types';
 const isEmpty = obj => Object.keys(obj).length === 0 && obj.constructor === Object;
 
 export default function uploadFileFactory(providerOptions): UploadFileProvider {
-  const { bucket, makePublic, listMetaDataConcurrency = 1, ...otherProviderOptions } = providerOptions;
+  const { bucket, makePublic, listMetaDataConcurrency = 3, ...otherProviderOptions } = providerOptions;
   const myS3 = !isEmpty(otherProviderOptions) ? new AWS.S3(otherProviderOptions) : new AWS.S3();
 
   if (!bucket) {
