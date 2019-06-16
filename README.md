@@ -54,20 +54,22 @@ $ cd dist && ../node_modules/bin/snap-push ./**/* s3://example-bucket --public
 
 ```js
 const AWS = require('aws-sdk');
-const push = require('snap-push');
-const s3FileProvider = require('snap-push/dist/s3');
+const push = require('snap-push').default;
+const s3FileProvider = require('snap-push/dist/s3').default;
 
 const providerOptions = {
   bucket: 'example-bucket',
   region: 'ap-southeast-2',
 };
 
-const result = await push({
-  currentWorkingDirectory: 'dist',
-  files: './**/*',
-  makePublic: true,
-  provider: s3FileProvider(providerOptions),
-});
+(async () => {
+  const result = await push({
+    currentWorkingDirectory: 'dist',
+    files: './**/*',
+    makePublic: true,
+    provider: s3FileProvider(providerOptions),
+  });
 
-console.log(result);
+  console.log(result);
+})();
 ```
