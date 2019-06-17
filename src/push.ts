@@ -1,5 +1,6 @@
 import glob from 'fast-glob';
 import pLimit from 'p-limit';
+import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { UploadFileProvider, UploadFile, AbstractLogger } from './types';
@@ -50,14 +51,14 @@ async function getMD5(fileName: string): Promise<string> {
   });
 }
 
-export function pathTrimStart(path: string) {
-  if (path.startsWith('./')) {
-    path = path.substring(2);
+export function pathTrimStart(filePath: string) {
+  if (filePath.startsWith('./')) {
+    filePath = filePath.substring(2);
   }
-  if (path.startsWith('/')) {
-    path = path.substring(1);
+  if (filePath.startsWith('/')) {
+    filePath = filePath.substring(1);
   }
-  return path;
+  return filePath;
 }
 
 export default async function push({
@@ -114,9 +115,10 @@ export default async function push({
     filesFromGlob.map(file =>
       limit(async () => {
         const fileName = pathTrimStart(file as string);
+        const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
         const key = `${destPathPrefix}${fileName}`;
-        const contentType = (await getFileMimeType(fileName)) || defaultContentType;
-        const md5Hash = await getMD5(fileName);
+        const contentType = (await getFileMimeType(localFileName)) || defaultContentType;
+        const md5Hash = await getMD5(localFileName);
         processedKeys.push(key);
         const existingFile = existingFilesMap.get(key);
         if (onlyUploadChanges && existingFile && existingFile.md5 === md5Hash) {
@@ -126,7 +128,7 @@ export default async function push({
           return;
         }
         await uploadFileProvider.upload({
-          source: fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }),
+          source: fs.createReadStream(localFileName, { highWaterMark: BUFFER_SIZE }),
           destFileName: key,
           contentType,
           md5Hash,

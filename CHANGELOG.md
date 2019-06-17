@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2019-06-17
+
+### Fixed
+
+- `currentWorkingDirectory` option now works.
+- S3 now omits `ContentMD5` when uploading as it is unsupported for multipart uploads (file greater than 5 MB).
+
 ## [1.0.0] - 2019-06-16
 
 ### Added

@@ -25,7 +25,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
               ContentType: contentType,
               Metadata: metadata,
               ACL: makePublic ? 'public-read' : undefined,
-              ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'),
+              // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
               CacheControl: cacheControl,
             },
             (err): void => {

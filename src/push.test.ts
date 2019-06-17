@@ -78,6 +78,18 @@ test('do not delete files that no longer exists with func', async () => {
   expect(result.deletedKeys.sort()).toEqual([]);
 });
 
+test('change working directory', async () => {
+  const pat = ['./**/*'];
+  const filesFromPat = (await fg(pat, { cwd: 'src' })) as string[];
+  const provider = getMockProvider([]);
+
+  // act
+  const result = await push({ currentWorkingDirectory: 'src', files: pat, provider });
+
+  // assert
+  expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
+});
+
 test('push with s3', async () => {
   const prefix = '__test3/';
   const providerOptions = { bucket: s3TestBucketName };
