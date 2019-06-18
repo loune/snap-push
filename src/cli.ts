@@ -2,7 +2,7 @@
 import push from './push';
 
 function getProvider(argv) {
-  const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-]+)\/*/.exec(argv.destination) || [null, null, null];
+  const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-.]+)\/*/.exec(argv.destination) || [null, null, null];
 
   if (proto === null) {
     throw new Error(`destination should be in the format of <provider>://<bucket> e.g. s3://my-bucket-name`);
@@ -72,13 +72,18 @@ require('yargs') // eslint-disable-line
         logger,
         concurrency: argv.concurrency,
         makePublic: argv.public,
-      }).then(result => {
-        logger.info(
-          `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
-            result.uploadedKeys.length
-          }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`
-        );
-      });
+        onlyUploadChanges: !argv.force,
+      })
+        .then(result => {
+          logger.info(
+            `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
+              result.uploadedKeys.length
+            }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`
+          );
+        })
+        .catch(error => {
+          logger.error(`Error: ${error}`);
+        });
     }
   )
   .option('concurrency', {
@@ -95,5 +100,8 @@ require('yargs') // eslint-disable-line
     default: null,
   })
   .option('public', {
+    default: false,
+  })
+  .option('force', {
     default: false,
   }).argv;

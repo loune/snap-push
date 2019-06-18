@@ -2,6 +2,8 @@ import AWS from 'aws-sdk';
 import fs from 'fs';
 import uploadFileFactory from './s3';
 
+jest.setTimeout(10000);
+
 const testBucketName = 'pouch-test';
 
 test('s3 uploadFile', async () => {

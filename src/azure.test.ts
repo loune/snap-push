@@ -2,6 +2,8 @@ import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter, Blo
 import fs from 'fs';
 import uploadFileFactory from './azure';
 
+jest.setTimeout(10000);
+
 test('azure uploadFile', async () => {
   const testFile = 'jest.config.js';
   const testKeyName = '__s3.test';

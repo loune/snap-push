@@ -25,13 +25,14 @@ async function readChars(filename: string, numOfChars: number): Promise<string> 
   );
 }
 
-export default async function getFileMimeType(filename: string): Promise<string> {
-  let type = mime.getType(filename);
+export default async function getFileMimeType(filename: string, customMime: any = null): Promise<string> {
+  const myMime = customMime || mime;
+  let type = myMime.getType(filename);
   if (type === null) {
     const chars = await readChars(filename, 200);
     const charsLower = chars.toLowerCase();
     if (charsLower.indexOf('<html>') !== -1 || charsLower.indexOf('<!doctype html>') !== -1) {
-      type = mime.getType('.html');
+      type = myMime.getType('.html');
     }
   }
 

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import Mime from 'mime/Mime';
 import getFileMimeType from './contentType';
 
 jest.setTimeout(10000);
@@ -40,4 +41,11 @@ test('test content type txt', async () => {
   expect(type).toEqual('text/plain');
 
   fs.unlinkSync(filename);
+});
+
+test('test content type override', async () => {
+  const filename = `test-custom-${Date.now()}.pub`;
+  const type = await getFileMimeType(filename, new Mime({ 'text/plain': ['pub'] }));
+
+  expect(type).toEqual('text/plain');
 });
