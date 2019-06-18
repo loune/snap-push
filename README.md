@@ -42,12 +42,12 @@ yarn add snap-push @google-cloud/storage
 
 ## Basic Usage
 
-`snap-push` can be used as a command line utility or as a library. For example, to push all the files in the `dist` folder to the root of the `example-bucket` S3 bucket:
+`snap-push` can be used as a command line utility or as a library. For example, to push all the files in the `dist` folder to the root of the `example-bucket` S3 bucket and make them public:
 
 ### Command line
 
 ```bash
-$ cd dist && ../node_modules/bin/snap-push ./**/* s3://example-bucket --public
+$ cd dist && ../node_modules/.bin/snap-push ./**/* s3://example-bucket --public
 ```
 
 ### Library code
