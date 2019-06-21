@@ -47,7 +47,7 @@ yarn add snap-push @google-cloud/storage
 ### Command line
 
 ```bash
-$ cd dist && ../node_modules/.bin/snap-push ./**/* s3://example-bucket --public
+$ cd dist && ../node_modules/.bin/snap-push './**/*' s3://example-bucket --public
 ```
 
 ### Library code

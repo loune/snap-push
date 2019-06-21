@@ -5,7 +5,11 @@ function getProvider(argv) {
   const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-.]+)\/*/.exec(argv.destination) || [null, null, null];
 
   if (proto === null) {
-    throw new Error(`destination should be in the format of <provider>://<bucket> e.g. s3://my-bucket-name`);
+    throw new Error(
+      `destination ${
+        argv.destination
+      } is not valid. It should be in the format of <provider>://<bucket> e.g. s3://my-bucket-name`
+    );
   }
 
   if (proto === 's3') {
