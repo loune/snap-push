@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2019-06-18
+
 ### Fixed
 
-- Example in README.
+- Built-in mime types not working when custom mime types are specified.
+- Example code in README.
 - Error message for destination argument in CLI.
 
 ## [2.0.0] - 2019-06-18

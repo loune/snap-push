@@ -43,9 +43,26 @@ test('test content type txt', async () => {
   fs.unlinkSync(filename);
 });
 
-test('test content type override', async () => {
+test('test content type override (Mime class)', async () => {
   const filename = `test-custom-${Date.now()}.pub`;
-  const type = await getFileMimeType(filename, new Mime({ 'text/plain': ['pub'] }));
+  // eslint-disable-next-line global-require
+  const customMime = new Mime(require('mime/types/standard'), require('mime/types/other'));
+  customMime.define({ 'text/plain': ['pub'] }, true);
+  const type = await getFileMimeType(filename, customMime);
 
   expect(type).toEqual('text/plain');
+});
+
+test('test content type override', async () => {
+  const filename = `test-custom-${Date.now()}.pub`;
+  const type = await getFileMimeType(filename, { 'text/plain': ['pub'] });
+
+  expect(type).toEqual('text/plain');
+});
+
+test('test content type override with fallback', async () => {
+  const filename = `test-custom-${Date.now()}.svg`;
+  const type = await getFileMimeType(filename, { 'text/plain': ['pub'] });
+
+  expect(type).toEqual('image/svg+xml');
 });

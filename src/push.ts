@@ -3,7 +3,6 @@ import pLimit from 'p-limit';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import Mime from 'mime/Mime';
 import { UploadFileProvider, UploadFile, AbstractLogger } from './types';
 import getFileMimeType from './contentType';
 
@@ -103,8 +102,6 @@ export default async function push({
   const getCacheControl = typeof cacheControl === 'function' ? cacheControl : () => cacheControl;
   const getMakePublic = typeof makePublic === 'function' ? makePublic : () => makePublic;
 
-  const customMime = mimeTypes ? new Mime(mimeTypes) : null;
-
   let existingFiles: UploadFile[] = [];
   const existingFilesMap = new Map<string, UploadFile>();
   if (onlyUploadChanges || shouldDeleteExtraFiles || uploadNewFilesFirst) {
@@ -135,7 +132,7 @@ export default async function push({
         const fileName = pathTrimStart(file as string);
         const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
         const key = `${destPathPrefix}${fileName}`;
-        const contentType = (await getFileMimeType(localFileName, customMime)) || defaultContentType;
+        const contentType = (await getFileMimeType(localFileName, mimeTypes)) || defaultContentType;
         const md5Hash = await getMD5(localFileName);
         processedKeys.push(key);
         const existingFile = existingFilesMap.get(key);
