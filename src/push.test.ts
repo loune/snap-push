@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk';
 import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter } from '@azure/storage-blob';
+import { BlobItem } from '@azure/storage-blob/typings/src/generated/src/models';
 import fg from 'fast-glob';
-import { BlobItem } from '@azure/storage-blob/typings/lib/generated/lib/models';
 import { Storage } from '@google-cloud/storage';
 import { Writable } from 'stream';
 import push, { pathTrimStart } from './push';
@@ -17,6 +17,7 @@ jest.setTimeout(60000);
 class LengthStream extends Writable {
   size: 0;
 
+  // eslint-disable-next-line no-underscore-dangle
   _write(chunk, enc, cb) {
     // store chunk, then call cb when done
     this.size += chunk.length;

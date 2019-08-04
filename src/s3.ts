@@ -15,29 +15,27 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
   return {
     upload: async ({ source, destFileName, contentType, md5Hash, metadata, cacheControl, makePublic }) => {
       // Upload the stream
-      return new Promise(
-        (resolve, reject): void => {
-          myS3.upload(
-            {
-              Body: source,
-              Bucket: bucket,
-              Key: destFileName,
-              ContentType: contentType,
-              Metadata: metadata,
-              ACL: makePublic ? 'public-read' : undefined,
-              // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
-              CacheControl: cacheControl,
-            },
-            (err): void => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              resolve();
+      return new Promise((resolve, reject): void => {
+        myS3.upload(
+          {
+            Body: source,
+            Bucket: bucket,
+            Key: destFileName,
+            ContentType: contentType,
+            Metadata: metadata,
+            ACL: makePublic ? 'public-read' : undefined,
+            // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
+            CacheControl: cacheControl,
+          },
+          (err): void => {
+            if (err) {
+              reject(err);
+              return;
             }
-          );
-        }
-      );
+            resolve();
+          }
+        );
+      });
     },
     list: async (prefix: string, includeMetadata: boolean) => {
       const results: UploadFile[] = [];
