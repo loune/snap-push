@@ -15,7 +15,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "yarn lint && yarn env-cmd --silent jest",
+    "test": "yarn lint && yarn env-cmd --silent jest --detectOpenHandles",
     "lint": "npx eslint --ext .js,.ts src",
     "build": "rm -rf dist && mkdir dist && yarn tsc && chmod +x dist/cli.js",
     "prepublish": "yarn build"
