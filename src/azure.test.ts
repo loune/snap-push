@@ -9,16 +9,7 @@ test('azure uploadFile', async () => {
   try {
     fs.mkdirSync('azurite');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('yarn', [
-    'azurite',
-    '--silent',
-    '--location',
-    'azurite',
-    '--blobPort',
-    '39858',
-    '--queuePort',
-    '39859',
-  ]);
+  const azurite = spawn('yarn', ['azurite-blob', '--silent', '--location', 'azurite', '--blobPort', '39858']);
 
   await new Promise(r => setTimeout(r, 4000));
 
@@ -87,7 +78,6 @@ test('azure uploadFile', async () => {
 
     await containerClient.delete();
   } finally {
-    await new Promise(r => azurite.stdin.write('\x03', r));
     azurite.kill();
   }
 });

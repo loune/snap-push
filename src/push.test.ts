@@ -126,16 +126,7 @@ test('push with azure', async () => {
   try {
     fs.mkdirSync('azurite2');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('yarn', [
-    'azurite',
-    '--silent',
-    '--location',
-    'azurite2',
-    '--blobPort',
-    '39878',
-    '--queuePort',
-    '39879',
-  ]);
+  const azurite = spawn('yarn', ['azurite-blob', '--silent', '--location', 'azurite2', '--blobPort', '39878']);
   await new Promise(r => setTimeout(r, 4000));
 
   try {
@@ -187,7 +178,6 @@ test('push with azure', async () => {
     // cleanup
     await containerClient.delete();
   } finally {
-    await new Promise(r => azurite.stdin.write('\x03', r));
     azurite.kill();
   }
 });
