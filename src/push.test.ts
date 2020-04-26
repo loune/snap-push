@@ -187,7 +187,8 @@ test('push with azure', async () => {
     // cleanup
     await containerClient.delete();
   } finally {
-    if (azurite) azurite.kill();
+    await new Promise(r => azurite.stdin.write('\x03', r));
+    azurite.kill();
   }
 });
 

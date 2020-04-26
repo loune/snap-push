@@ -87,6 +87,7 @@ test('azure uploadFile', async () => {
 
     await containerClient.delete();
   } finally {
+    await new Promise(r => azurite.stdin.write('\x03', r));
     azurite.kill();
   }
 });
