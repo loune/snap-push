@@ -11,6 +11,7 @@ export interface UploadArgs {
   source: Readable;
   destFileName: string;
   contentType: string;
+  contentLength: number;
   md5Hash: string;
   metadata?: { [key: string]: string };
   cacheControl?: string;

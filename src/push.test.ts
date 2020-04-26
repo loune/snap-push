@@ -1,9 +1,10 @@
 import AWS from 'aws-sdk';
-import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter } from '@azure/storage-blob';
-import { BlobItem } from '@azure/storage-blob/typings/src/generated/src/models';
+import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/storage-blob';
 import fg from 'fast-glob';
 import { Storage } from '@google-cloud/storage';
 import { Writable } from 'stream';
+import { spawn } from 'child_process';
+import fs from 'fs';
 import push, { pathTrimStart } from './push';
 import s3FileProvider from './s3';
 import azureFileProvider from './azure';
@@ -122,58 +123,72 @@ test('push with s3', async () => {
 });
 
 test('push with azure', async () => {
-  const prefix = '__test3/';
-  // test with azurite
-  const accountName = 'devstoreaccount1';
-  const providerOptions = {
-    credential: new SharedKeyCredential(
-      accountName,
-      'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
-    ),
-    serviceUrl: `http://127.0.0.1:10000/${accountName}`,
-    containerName: `newcontainer${new Date().getTime()}`,
-  };
-  const pat = ['./src/**/*'];
-  const filesFromPat = (await fg(pat)) as string[];
+  try {
+    fs.mkdirSync('azurite2');
+  } catch {} // eslint-disable-line no-empty
+  const azurite = spawn('yarn', [
+    'azurite',
+    '--silent',
+    '--location',
+    'azurite2',
+    '--blobPort',
+    '39878',
+    '--queuePort',
+    '39879',
+  ]);
+  await new Promise(r => setTimeout(r, 4000));
 
-  // Create a container
-  const pipeline = StorageURL.newPipeline(providerOptions.credential);
+  try {
+    const prefix = '__test3/';
+    // test with azurite
+    const accountName = 'devstoreaccount1';
+    const providerOptions = {
+      credential: new StorageSharedKeyCredential(
+        accountName,
+        'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
+      ),
+      serviceUrl: `http://127.0.0.1:39878/${accountName}`,
+      containerName: `snap-push-test-${new Date().getTime()}`,
+    };
+    const pat = ['./src/**/*'];
+    const filesFromPat = (await fg(pat)) as string[];
 
-  const serviceURL = new ServiceURL(providerOptions.serviceUrl, pipeline);
-  const containerURL = ContainerURL.fromServiceURL(serviceURL, providerOptions.containerName);
+    // Create a container
+    const blobServiceClient = new BlobServiceClient(providerOptions.serviceUrl, providerOptions.credential);
 
-  await containerURL.create(Aborter.none);
+    const containerClient = blobServiceClient.getContainerClient(providerOptions.containerName);
 
-  // act
-  const result = await push({
-    files: pat,
-    provider: azureFileProvider(providerOptions),
-    destPathPrefix: prefix,
-    onlyUploadChanges: false,
-  });
+    await containerClient.create();
 
-  // assert
-  expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
-  expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
-  expect(result.elasped).toBeGreaterThan(0);
+    // act
+    const result = await push({
+      files: pat,
+      provider: azureFileProvider(providerOptions),
+      destPathPrefix: prefix,
+      onlyUploadChanges: false,
+    });
 
-  const blobs: BlobItem[] = [];
-  let marker;
-  do {
+    // assert
+    expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
+    expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+    expect(result.elasped).toBeGreaterThan(0);
+
+    const blobs: BlobItem[] = [];
+    const listBlobsResponse = containerClient.listBlobsFlat();
+
     // eslint-disable-next-line no-await-in-loop
-    const listBlobsResponse = await containerURL.listBlobFlatSegment(Aborter.none, marker);
-
-    marker = listBlobsResponse.nextMarker;
-    for (const blob of listBlobsResponse.segment.blobItems) {
+    for await (const blob of listBlobsResponse) {
       blobs.push(blob);
     }
-  } while (marker);
 
-  expect(blobs.map(x => x.name).sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
-  expect(blobs.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
+    expect(blobs.map(x => x.name).sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+    expect(blobs.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
 
-  // cleanup
-  await containerURL.delete(Aborter.none);
+    // cleanup
+    await containerClient.delete();
+  } finally {
+    if (azurite) azurite.kill();
+  }
 });
 
 test('push with gcp', async () => {

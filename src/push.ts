@@ -63,6 +63,19 @@ async function getMD5(fileName: string): Promise<string> {
   });
 }
 
+async function getSize(fileName: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    fs.stat(fileName, (err, stat) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(stat.size);
+    });
+  });
+}
+
 export function pathTrimStart(filePath: string) {
   if (filePath.startsWith('./')) {
     filePath = filePath.substring(2);
@@ -87,7 +100,7 @@ export default async function push({
   uploadNewFilesFirst = true,
   listIncludeMetadata = false,
   makePublic = false,
-  logger = { info() {}, warn() {}, error() {} },
+  logger = { info() {}, warn() {}, error() {} }, // eslint-disable-line @typescript-eslint/no-empty-function
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = provider;
   const limit = pLimit(concurrency || 1);
@@ -133,6 +146,7 @@ export default async function push({
         const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
         const key = `${destPathPrefix}${fileName}`;
         const contentType = (await getFileMimeType(localFileName, mimeTypes)) || defaultContentType;
+        const contentLength = await getSize(localFileName);
         const md5Hash = await getMD5(localFileName);
         processedKeys.push(key);
         const existingFile = existingFilesMap.get(key);
@@ -144,6 +158,7 @@ export default async function push({
         }
         try {
           await uploadFileProvider.upload({
+            contentLength,
             source: fs.createReadStream(localFileName, { highWaterMark: BUFFER_SIZE }),
             destFileName: key,
             contentType,

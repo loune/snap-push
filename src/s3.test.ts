@@ -4,17 +4,18 @@ import uploadFileFactory from './s3';
 
 jest.setTimeout(10000);
 
-const testBucketName = 'pouch-test';
+const testBucketName = process.env.S3_TEST_BUCKET;
 
 test('s3 uploadFile', async () => {
   const testFile = 'jest.config.js';
-  const hash = '0f0d514cf6a4dbf1f5d74b7152f440d1';
+  const hash = '182d400ab46da21d85a8f571ce2e605c';
   const testKeyName = '__s3.test';
   const options = { bucket: testBucketName };
   const uploadFile = uploadFileFactory(options);
 
   // act
   await uploadFile.upload({
+    contentLength: fs.statSync(testFile).size,
     source: fs.createReadStream(testFile),
     destFileName: testKeyName,
     contentType: 'text/plain',

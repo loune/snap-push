@@ -4,7 +4,7 @@ import uploadFileFactory from './gcp';
 
 const testBucketName = 'snap-push-test';
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 
 test('gcp uploadFile', async () => {
   const testFile = 'jest.config.js';
@@ -14,10 +14,11 @@ test('gcp uploadFile', async () => {
 
   // act
   await uploadFile.upload({
+    contentLength: fs.statSync(testFile).size,
     source: fs.createReadStream(testFile, { highWaterMark: 4 * 1024 * 1024 }),
     destFileName: testKeyName,
     contentType: 'text/plain',
-    md5Hash: '0f0d514cf6a4dbf1f5d74b7152f440d1',
+    md5Hash: '182d400ab46da21d85a8f571ce2e605c',
     metadata: { test: 'gcp' },
   });
   const list = await uploadFile.list(testKeyName, false);
@@ -39,7 +40,7 @@ test('gcp uploadFile', async () => {
   expect(data.toString()).toBe(fs.readFileSync(testFile).toString());
 
   expect(list).toEqual([
-    { name: testKeyName, md5: '0f0d514cf6a4dbf1f5d74b7152f440d1', size: fileStat.size, metadata: { test: 'gcp' } },
+    { name: testKeyName, md5: '182d400ab46da21d85a8f571ce2e605c', size: fileStat.size, metadata: { test: 'gcp' } },
   ]);
 
   await uploadFile.delete(testKeyName);

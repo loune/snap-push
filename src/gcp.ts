@@ -29,10 +29,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
         writeStream.on('finish', () => {
           resolve();
         });
-        source.pipe(
-          writeStream,
-          { end: true }
-        );
+        source.pipe(writeStream, { end: true });
       });
     },
     list: async (prefix: string, includeMetadata: boolean) => {

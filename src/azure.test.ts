@@ -1,71 +1,92 @@
-import { SharedKeyCredential, StorageURL, ServiceURL, ContainerURL, Aborter, BlobURL } from '@azure/storage-blob';
+import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import uploadFileFactory from './azure';
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 
 test('azure uploadFile', async () => {
-  const testFile = 'jest.config.js';
-  const testKeyName = '__s3.test';
-  // test with azurite
-  const accountName = 'devstoreaccount1';
-  const options = {
-    credential: new SharedKeyCredential(
-      accountName,
-      'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
-    ),
-    serviceUrl: `http://127.0.0.1:10000/${accountName}`,
-    containerName: `snappushtest${new Date().getTime()}`,
-  };
-
-  // Create a container
-  const pipeline = StorageURL.newPipeline(options.credential);
-
-  const serviceURL = new ServiceURL(options.serviceUrl, pipeline);
-  const containerURL = ContainerURL.fromServiceURL(serviceURL, options.containerName);
-
-  await containerURL.create(Aborter.none);
-
-  const uploadFile = uploadFileFactory(options);
-
-  // act
-  await uploadFile.upload({
-    source: fs.createReadStream(testFile),
-    destFileName: testKeyName,
-    contentType: 'text/plain',
-    md5Hash: '0f0d514cf6a4dbf1f5d74b7152f440d1',
-    metadata: { test: 'azure' },
-  });
-  const list = await uploadFile.list(testKeyName, true);
-
-  // assert
-  const blobURL = BlobURL.fromContainerURL(containerURL, testKeyName);
-  const downloadBlockBlobResponse = await blobURL.download(Aborter.none, 0);
-
-  const fileStat = fs.statSync(testFile);
-  expect(downloadBlockBlobResponse.contentLength).toBe(fileStat.size);
-  expect(downloadBlockBlobResponse.contentType).toBe('text/plain');
-  const streamString = await new Promise((resolve, reject) => {
-    const buffers: Buffer[] = [];
-    downloadBlockBlobResponse.readableStreamBody.on('data', data => {
-      buffers.push(data);
-    });
-    downloadBlockBlobResponse.readableStreamBody.on('end', () => {
-      resolve(Buffer.concat(buffers).toString());
-    });
-    downloadBlockBlobResponse.readableStreamBody.on('error', err => {
-      reject(err);
-    });
-  });
-  expect(streamString).toBe(fs.readFileSync(testFile).toString());
-  expect(list).toEqual([
-    { name: testKeyName, md5: '0f0d514cf6a4dbf1f5d74b7152f440d1', size: fileStat.size, metadata: { test: 'azure' } },
+  try {
+    fs.mkdirSync('azurite');
+  } catch {} // eslint-disable-line no-empty
+  const azurite = spawn('yarn', [
+    'azurite',
+    '--silent',
+    '--location',
+    'azurite',
+    '--blobPort',
+    '39858',
+    '--queuePort',
+    '39859',
   ]);
 
-  await uploadFile.delete(testKeyName);
+  await new Promise(r => setTimeout(r, 4000));
 
-  const listAfterDelete = await uploadFile.list(testKeyName, false);
-  expect(listAfterDelete).toEqual([]);
+  try {
+    const testFile = 'jest.config.js';
+    const testKeyName = '__s3.test';
+    // test with azurite
+    const accountName = 'devstoreaccount1';
+    const options = {
+      credential: new StorageSharedKeyCredential(
+        accountName,
+        'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
+      ),
+      serviceUrl: `http://127.0.0.1:39858/${accountName}`,
+      containerName: `snappushtest${new Date().getTime()}`,
+    };
 
-  await containerURL.delete(Aborter.none);
+    // Create a container
+    const blobServiceClient = new BlobServiceClient(options.serviceUrl, options.credential);
+
+    const containerClient = blobServiceClient.getContainerClient(options.containerName);
+
+    await containerClient.create();
+
+    const uploadFile = uploadFileFactory(options);
+
+    // act
+    await uploadFile.upload({
+      contentLength: fs.statSync(testFile).size,
+      source: fs.createReadStream(testFile),
+      destFileName: testKeyName,
+      contentType: 'text/plain',
+      md5Hash: '182d400ab46da21d85a8f571ce2e605c',
+      metadata: { test: 'azure' },
+    });
+    const list = await uploadFile.list(testKeyName, true);
+
+    // assert
+    const blockBlobClient = containerClient.getBlockBlobClient(testKeyName);
+    const downloadBlockBlobResponse = await blockBlobClient.download();
+
+    const fileStat = fs.statSync(testFile);
+    expect(downloadBlockBlobResponse.contentLength).toBe(fileStat.size);
+    expect(downloadBlockBlobResponse.contentType).toBe('text/plain');
+    const streamString = await new Promise((resolve, reject) => {
+      const buffers: Buffer[] = [];
+      downloadBlockBlobResponse.readableStreamBody.on('data', data => {
+        buffers.push(data);
+      });
+      downloadBlockBlobResponse.readableStreamBody.on('end', () => {
+        resolve(Buffer.concat(buffers).toString());
+      });
+      downloadBlockBlobResponse.readableStreamBody.on('error', err => {
+        reject(err);
+      });
+    });
+    expect(streamString).toBe(fs.readFileSync(testFile).toString());
+    expect(list).toEqual([
+      { name: testKeyName, md5: '182d400ab46da21d85a8f571ce2e605c', size: fileStat.size, metadata: { test: 'azure' } },
+    ]);
+
+    await uploadFile.delete(testKeyName);
+
+    const listAfterDelete = await uploadFile.list(testKeyName, false);
+    expect(listAfterDelete).toEqual([]);
+
+    await containerClient.delete();
+  } finally {
+    azurite.kill();
+  }
 });
