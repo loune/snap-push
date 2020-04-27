@@ -5,7 +5,7 @@ name: Integration Test
 
 on:
   push:
-    branches: [master, github_actions]
+    branches: [master, github-actions]
   pull_request:
     branches: [master]
 
