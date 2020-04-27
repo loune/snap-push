@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2020-04-27
+
+### Changed
+
+- Update `@azure/storage-blob` to version `12` and fix implementation.
+- Update dependencies to latest version.
+- Improve unit tests and add CI.
+
 ## [2.0.1] - 2019-06-18
 
 ### Fixed
