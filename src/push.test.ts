@@ -3,7 +3,7 @@ import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/
 import fg from 'fast-glob';
 import { Storage } from '@google-cloud/storage';
 import { Writable } from 'stream';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import push, { pathTrimStart } from './push';
 import s3FileProvider from './s3';
@@ -126,7 +126,14 @@ test('push with azure', async () => {
   try {
     fs.mkdirSync('azurite2');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('yarn', ['azurite-blob', '--silent', '--location', 'azurite2', '--blobPort', '39878']);
+  const azurite = spawn('node', [
+    'node_modules/.bin/azurite-blob',
+    '--silent',
+    '--location',
+    'azurite2',
+    '--blobPort',
+    '39878',
+  ]);
   await new Promise(r => setTimeout(r, 4000));
 
   try {
@@ -178,7 +185,7 @@ test('push with azure', async () => {
     // cleanup
     await containerClient.delete();
   } finally {
-    azurite.kill();
+    spawnSync('kill', ['-9', azurite.pid.toString()]);
   }
 });
 
