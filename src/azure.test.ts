@@ -1,6 +1,6 @@
 import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
 import fs from 'fs';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import uploadFileFactory from './azure';
 
 jest.setTimeout(20000);
@@ -9,7 +9,14 @@ test('azure uploadFile', async () => {
   try {
     fs.mkdirSync('azurite');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('yarn', ['azurite-blob', '--silent', '--location', 'azurite', '--blobPort', '39858']);
+  const azurite = spawn('node', [
+    'node_modules/.bin/azurite-blob',
+    '--silent',
+    '--location',
+    'azurite',
+    '--blobPort',
+    '39858',
+  ]);
 
   await new Promise(r => setTimeout(r, 4000));
 
@@ -78,6 +85,6 @@ test('azure uploadFile', async () => {
 
     await containerClient.delete();
   } finally {
-    azurite.kill();
+    spawnSync('kill', ['-9', azurite.pid.toString()]);
   }
 });
