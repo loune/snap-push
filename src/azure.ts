@@ -1,7 +1,14 @@
 import { BlobServiceClient } from '@azure/storage-blob';
 import { UploadFileProvider, UploadFile } from './types';
 
-export default function uploadFileFactory(providerOptions): UploadFileProvider {
+export interface AzureProviderOptions {
+  credential: any;
+  account?: string;
+  containerName: string;
+  serviceUrl?: string;
+}
+
+export default function uploadFileFactory(providerOptions: AzureProviderOptions): UploadFileProvider {
   const { credential, account, containerName, serviceUrl } = providerOptions;
 
   if (!containerName) {
@@ -41,8 +48,8 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
       for await (const blob of response) {
         results.push({
           name: blob.name,
-          md5: blob.properties.contentMD5 ? Buffer.from(blob.properties.contentMD5).toString('hex') : null,
-          size: blob.properties.contentLength,
+          md5: blob.properties.contentMD5 ? Buffer.from(blob.properties.contentMD5).toString('hex') : undefined,
+          size: blob.properties.contentLength || 0,
           metadata: blob.metadata || {},
         });
       }

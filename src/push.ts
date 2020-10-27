@@ -56,7 +56,7 @@ async function getMD5(fileName: string): Promise<string> {
       md5.end();
       resolve(md5.read());
     });
-    stream.on('error', err => {
+    stream.on('error', (err) => {
       reject(err);
     });
     stream.pipe(md5);
@@ -76,7 +76,7 @@ async function getSize(fileName: string): Promise<number> {
   });
 }
 
-export function pathTrimStart(filePath: string) {
+export function pathTrimStart(filePath: string): string {
   if (filePath.startsWith('./')) {
     filePath = filePath.substring(2);
   }
@@ -119,7 +119,7 @@ export default async function push({
   const existingFilesMap = new Map<string, UploadFile>();
   if (onlyUploadChanges || shouldDeleteExtraFiles || uploadNewFilesFirst) {
     existingFiles = await provider.list(destPathPrefix, listIncludeMetadata);
-    existingFiles.forEach(file => {
+    existingFiles.forEach((file) => {
       existingFilesMap.set(file.name, file);
     });
   }
@@ -140,7 +140,7 @@ export default async function push({
   }
 
   await Promise.all(
-    filesFromGlob.map(file =>
+    filesFromGlob.map((file) =>
       limit(async () => {
         const fileName = pathTrimStart(file as string);
         const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
@@ -177,17 +177,17 @@ export default async function push({
     )
   );
 
-  const deletedKeys = [];
+  const deletedKeys: string[] = [];
   if (shouldDeleteExtraFiles) {
     const processedKeysMap = new Map<string, string>();
-    processedKeys.forEach(file => {
+    processedKeys.forEach((file) => {
       processedKeysMap.set(file, file);
     });
-    const extraFiles = existingFiles.filter(file => processedKeysMap.get(file.name) === undefined);
+    const extraFiles = existingFiles.filter((file) => processedKeysMap.get(file.name) === undefined);
     const shouldDeleteExtraFilesFunc =
       typeof shouldDeleteExtraFiles === 'function' ? shouldDeleteExtraFiles : () => shouldDeleteExtraFiles;
     await Promise.all(
-      extraFiles.map(file =>
+      extraFiles.map((file) =>
         limit(async () => {
           if (shouldDeleteExtraFilesFunc(file)) {
             try {

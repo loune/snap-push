@@ -1,7 +1,19 @@
 #!/usr/bin/env node
+import yargs from 'yargs';
 import push from './push';
 
-function getProvider(argv) {
+interface Argv {
+  source: string;
+  destination: string;
+  prefix?: string;
+  concurrency?: number;
+  public?: boolean;
+  force?: boolean;
+  accountName?: string;
+  accountKey?: string;
+}
+
+function getProvider(argv: Argv) {
   const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-.]+)\/*/.exec(argv.destination) || [null, null, null];
 
   if (proto === null) {
@@ -41,30 +53,30 @@ function getProvider(argv) {
 }
 
 const logger = {
-  info(...args) {
+  info(...args: any) {
     console.log(...args);
   },
-  error(...args) {
+  error(...args: any) {
     console.error(...args);
   },
-  warn(...args) {
+  warn(...args: any) {
     console.warn(...args);
   },
 };
 
-require('yargs') // eslint-disable-line
+yargs // eslint-disable-line
   .command(
     '* <source> <destination>',
     'Push files to the remote file service.',
-    yargs => {
-      yargs.positional('source', {
+    (myargs) => {
+      myargs.positional('source', {
         describe: 'source files glob',
       });
-      yargs.positional('destination', {
+      myargs.positional('destination', {
         describe: 'destination bucket',
       });
     },
-    argv => {
+    (argv: Argv) => {
       const startTime = Date.now();
       // act
       push({
@@ -76,14 +88,14 @@ require('yargs') // eslint-disable-line
         makePublic: argv.public,
         onlyUploadChanges: !argv.force,
       })
-        .then(result => {
+        .then((result) => {
           logger.info(
             `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
               result.uploadedKeys.length
             }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`
           );
         })
-        .catch(error => {
+        .catch((error) => {
           logger.error(`Error: ${error}`);
         });
     }

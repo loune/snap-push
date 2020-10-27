@@ -18,7 +18,7 @@ test('azure uploadFile', async () => {
     '39858',
   ]);
 
-  await new Promise(r => setTimeout(r, 4000));
+  await new Promise((r) => setTimeout(r, 4000));
 
   try {
     const testFile = 'jest.config.js';
@@ -63,13 +63,14 @@ test('azure uploadFile', async () => {
     expect(downloadBlockBlobResponse.contentType).toBe('text/plain');
     const streamString = await new Promise((resolve, reject) => {
       const buffers: Buffer[] = [];
-      downloadBlockBlobResponse.readableStreamBody.on('data', data => {
+      expect(downloadBlockBlobResponse.readableStreamBody).toBeTruthy();
+      downloadBlockBlobResponse.readableStreamBody?.on('data', (data) => {
         buffers.push(data);
       });
-      downloadBlockBlobResponse.readableStreamBody.on('end', () => {
+      downloadBlockBlobResponse.readableStreamBody?.on('end', () => {
         resolve(Buffer.concat(buffers).toString());
       });
-      downloadBlockBlobResponse.readableStreamBody.on('error', err => {
+      downloadBlockBlobResponse.readableStreamBody?.on('error', (err) => {
         reject(err);
       });
     });

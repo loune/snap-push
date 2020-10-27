@@ -29,7 +29,8 @@
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/explicit-function-return-type": "off",
         "react/prop-types": "off",
-        "import/extensions": ["error", "ignorePackages", { "ts": "never" }]
+        "import/extensions": ["error", "ignorePackages", { "ts": "never" }],
+        "no-useless-constructor": "off"
       }
     },
     {

@@ -3,11 +3,11 @@ import Mime from 'mime/Mime';
 import fs from 'fs';
 
 async function readChars(filename: string, numOfChars: number): Promise<string> {
-  const buf = [];
+  const buf: Buffer[] = [];
   let bufLen = 0;
   return new Promise((resolve, reject): void => {
     const rs = fs.createReadStream(filename, { encoding: 'utf8' });
-    rs.on('data', chunk => {
+    rs.on('data', (chunk) => {
       buf.push(chunk);
       bufLen += chunk.length;
       if (bufLen >= numOfChars) {
@@ -18,7 +18,7 @@ async function readChars(filename: string, numOfChars: number): Promise<string> 
         const str = buf.join('');
         resolve(str.substring(0, Math.min(str.length, numOfChars)));
       })
-      .on('error', err => {
+      .on('error', (err) => {
         reject(err);
       });
   });

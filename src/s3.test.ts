@@ -6,6 +6,10 @@ jest.setTimeout(10000);
 
 const testBucketName = process.env.S3_TEST_BUCKET;
 
+if (!testBucketName) {
+  throw new Error('S3_TEST_BUCKET env is missing');
+}
+
 test('s3 uploadFile', async () => {
   const testFile = 'jest.config.js';
   const hash = '182d400ab46da21d85a8f571ce2e605c';
@@ -31,7 +35,7 @@ test('s3 uploadFile', async () => {
   const fileStat = fs.statSync(testFile);
   expect(data.ContentLength).toBe(fileStat.size);
   expect(data.ContentType).toBe('text/plain');
-  expect(data.Body.toString()).toBe(fs.readFileSync(testFile).toString());
+  expect(data.Body?.toString()).toBe(fs.readFileSync(testFile).toString());
 
   expect(list).toEqual([{ name: testKeyName, md5: hash, size: fileStat.size, metadata: { test: 's3' } }]);
 

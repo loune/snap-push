@@ -25,14 +25,8 @@ test('gcp uploadFile', async () => {
 
   // assert
   const storage = new Storage();
-  const [data] = await storage
-    .bucket(testBucketName)
-    .file(testKeyName)
-    .download();
-  const [metadata] = await storage
-    .bucket(testBucketName)
-    .file(testKeyName)
-    .getMetadata();
+  const [data] = await storage.bucket(testBucketName).file(testKeyName).download();
+  const [metadata] = await storage.bucket(testBucketName).file(testKeyName).getMetadata();
 
   const fileStat = fs.statSync(testFile);
   expect(Number(metadata.size)).toBe(fileStat.size);

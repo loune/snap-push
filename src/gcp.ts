@@ -1,7 +1,11 @@
-import { Storage } from '@google-cloud/storage';
+import { Storage, StorageOptions } from '@google-cloud/storage';
 import { UploadFileProvider } from './types';
 
-export default function uploadFileFactory(providerOptions): UploadFileProvider {
+export interface GcpProviderOptions extends StorageOptions {
+  bucket: string;
+}
+
+export default function uploadFileFactory(providerOptions: GcpProviderOptions): UploadFileProvider {
   const { bucket, ...otherProviderOptions } = providerOptions;
 
   if (!bucket) {
@@ -23,7 +27,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
             cacheControl,
           },
         });
-        writeStream.on('error', err => {
+        writeStream.on('error', (err) => {
           reject(err);
         });
         writeStream.on('finish', () => {
@@ -34,7 +38,7 @@ export default function uploadFileFactory(providerOptions): UploadFileProvider {
     },
     list: async (prefix: string, includeMetadata: boolean) => {
       const [files] = await storageBucket.getFiles({ prefix, autoPaginate: true });
-      return files.map(f => ({
+      return files.map((f) => ({
         name: f.name,
         md5: Buffer.from(f.metadata.md5Hash, 'base64').toString('hex'),
         size: Number(f.metadata.size),

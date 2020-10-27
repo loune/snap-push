@@ -16,10 +16,10 @@ const s3TestBucketName = 'pouch-test';
 jest.setTimeout(60000);
 
 class LengthStream extends Writable {
-  size: 0;
+  size = 0;
 
   // eslint-disable-next-line no-underscore-dangle
-  _write(chunk, enc, cb) {
+  _write(chunk: any, enc: string, cb: () => void) {
     // store chunk, then call cb when done
     this.size += chunk.length;
     cb();
@@ -38,7 +38,7 @@ function getMockProvider(initalFiles: UploadFile[]) {
       return files;
     },
     async delete(key) {
-      files = files.filter(f => f.name !== key);
+      files = files.filter((f) => f.name !== key);
     },
   };
   return mockProvider;
@@ -53,7 +53,7 @@ test('delete files that no longer exists', async () => {
   const result = await push({ shouldDeleteExtraFiles: true, files: pat, provider });
 
   // assert
-  expect(result.deletedKeys.sort()).toEqual(initialFiles.map(f => f.name).sort());
+  expect(result.deletedKeys.sort()).toEqual(initialFiles.map((f) => f.name).sort());
 });
 
 test('do not delete files that no longer exists', async () => {
@@ -108,18 +108,20 @@ test('push with s3', async () => {
 
   // assert
   expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
-  expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+  expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
   expect(result.elasped).toBeGreaterThan(0);
 
   const s3 = new AWS.S3();
   const s3result = await s3.listObjectsV2({ Bucket: s3TestBucketName, Prefix: prefix }).promise();
-  expect(s3result.Contents.map(x => x.Key).sort()).toEqual(
-    filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort()
+  expect(s3result.Contents?.map((x) => x.Key).sort()).toEqual(
+    filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort()
   );
-  expect(s3result.Contents.map(x => x.Key).sort()).toEqual(result.uploadedKeys.sort());
+  expect(s3result.Contents?.map((x) => x.Key).sort()).toEqual(result.uploadedKeys.sort());
 
   // cleanup
-  await Promise.all(result.uploadedKeys.map(key => s3.deleteObject({ Bucket: s3TestBucketName, Key: key }).promise()));
+  await Promise.all(
+    result.uploadedKeys.map((key) => s3.deleteObject({ Bucket: s3TestBucketName, Key: key }).promise())
+  );
 });
 
 test('push with azure', async () => {
@@ -134,7 +136,7 @@ test('push with azure', async () => {
     '--blobPort',
     '39878',
   ]);
-  await new Promise(r => setTimeout(r, 4000));
+  await new Promise((r) => setTimeout(r, 4000));
 
   try {
     const prefix = '__test3/';
@@ -168,7 +170,7 @@ test('push with azure', async () => {
 
     // assert
     expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
-    expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+    expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
     expect(result.elasped).toBeGreaterThan(0);
 
     const blobs: BlobItem[] = [];
@@ -179,8 +181,8 @@ test('push with azure', async () => {
       blobs.push(blob);
     }
 
-    expect(blobs.map(x => x.name).sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
-    expect(blobs.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
+    expect(blobs.map((x) => x.name).sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
+    expect(blobs.map((x) => x.name).sort()).toEqual(result.uploadedKeys.sort());
 
     // cleanup
     await containerClient.delete();
@@ -206,22 +208,15 @@ test('push with gcp', async () => {
 
   // assert
   expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
-  expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
+  expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
   expect(result.elasped).toBeGreaterThan(0);
 
   const storage = new Storage();
   const [files] = await storage.bucket(gcpTestBucketName).getFiles({ prefix });
 
-  expect(files.map(x => x.name).sort()).toEqual(filesFromPat.map(x => `${prefix}${pathTrimStart(x)}`).sort());
-  expect(files.map(x => x.name).sort()).toEqual(result.uploadedKeys.sort());
+  expect(files.map((x) => x.name).sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
+  expect(files.map((x) => x.name).sort()).toEqual(result.uploadedKeys.sort());
 
   // cleanup
-  await Promise.all(
-    result.uploadedKeys.map(key =>
-      storage
-        .bucket(gcpTestBucketName)
-        .file(key)
-        .delete()
-    )
-  );
+  await Promise.all(result.uploadedKeys.map((key) => storage.bucket(gcpTestBucketName).file(key).delete()));
 });

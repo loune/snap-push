@@ -2,7 +2,7 @@ import { Readable } from 'stream';
 
 export interface UploadFile {
   name: string;
-  md5: string;
+  md5?: string;
   size: number;
   metadata: { [key: string]: string };
 }
@@ -26,7 +26,7 @@ export interface UploadFileProvider {
 }
 
 export interface AbstractLogger {
-  info: (...args) => void;
-  warn: (...args) => void;
-  error: (...args) => void;
+  info: (...args: any) => void;
+  warn: (...args: any) => void;
+  error: (...args: any) => void;
 }
