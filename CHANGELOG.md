@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatically create compressed copies of files with `br` and `gzip` using new `autoCompress` option.
+- Object tagging for AWS and Azure.
+
 ## [3.0.0] - 2020-04-27
 
 ### Changed

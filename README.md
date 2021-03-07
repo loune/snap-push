@@ -8,6 +8,7 @@
   - Google Cloud Storage
   - MinIO
 - Automatically detect and set correct `Content-Type` for uploaded files.
+- Create `gzip` and `br` compressed versions of uploaded file and set the appropriate `Content-Encoding`.
 - Set custom `Cache-Control`.
 - Concurrent uploads.
 - Only upload changed files.
@@ -72,4 +73,22 @@ const providerOptions = {
 
   console.log(result);
 })();
+```
+
+### Auto compression
+
+Files uploaded with specific `fileExtensions` or `mimeTypes` could be automatically compressed with `br` (Brotli) and/or `gzip` (GZip) using the `autoCompress` option. This is useful when used in conjuction with a CDN with rules to route requests with the appropriate `Accept-Encoding` to the compressed copy.
+
+```js
+const result = await push({
+  currentWorkingDirectory: 'dist',
+  files: './**/*',
+  makePublic: true,
+  autoCompress: {
+    fileExtensions: ['txt', 'html'],
+    mimeTypes: [/text/, /xml/],
+    encodings: ['br', 'gzip'],
+  },
+  provider: s3FileProvider(providerOptions),
+});
 ```

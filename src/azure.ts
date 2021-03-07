@@ -24,7 +24,17 @@ export default function uploadFileFactory(providerOptions: AzureProviderOptions)
   const containerClient = blobServiceClient.getContainerClient(containerName);
 
   return {
-    upload: async ({ source, destFileName, contentLength, contentType, md5Hash, metadata, cacheControl }) => {
+    upload: async ({
+      source,
+      destFileName,
+      contentLength,
+      contentType,
+      md5Hash,
+      metadata,
+      tags,
+      cacheControl,
+      contentEncoding,
+    }) => {
       const blockBlobClient = containerClient.getBlockBlobClient(destFileName);
 
       await blockBlobClient.upload(() => source, contentLength, {
@@ -32,8 +42,10 @@ export default function uploadFileFactory(providerOptions: AzureProviderOptions)
           blobContentType: contentType,
           blobContentMD5: new Uint8Array(Buffer.from(md5Hash, 'hex')),
           blobCacheControl: cacheControl,
+          blobContentEncoding: contentEncoding,
         },
         metadata,
+        tags,
       });
     },
     list: async (prefix: string, includeMetadata: boolean) => {

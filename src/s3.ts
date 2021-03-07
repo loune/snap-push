@@ -1,5 +1,6 @@
 import AWS from 'aws-sdk';
 import pLimit from 'p-limit';
+import querystring from 'querystring';
 import { UploadFileProvider, UploadFile } from './types';
 
 const isEmpty = (obj: any) => Object.keys(obj).length === 0 && obj.constructor === Object;
@@ -19,7 +20,17 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
   }
 
   return {
-    upload: async ({ source, destFileName, contentType, md5Hash, metadata, cacheControl, makePublic }) => {
+    upload: async ({
+      source,
+      destFileName,
+      contentType,
+      md5Hash,
+      metadata,
+      tags,
+      cacheControl,
+      contentEncoding,
+      makePublic,
+    }) => {
       // Upload the stream
       return new Promise((resolve, reject): void => {
         myS3.upload(
@@ -29,9 +40,11 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
             Key: destFileName,
             ContentType: contentType,
             Metadata: metadata,
+            Tagging: tags ? querystring.stringify(tags) : undefined,
             ACL: makePublic ? 'public-read' : undefined,
             // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
             CacheControl: cacheControl,
+            ContentEncoding: contentEncoding,
           },
           (err): void => {
             if (err) {

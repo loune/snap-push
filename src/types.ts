@@ -12,8 +12,10 @@ export interface UploadArgs {
   destFileName: string;
   contentType: string;
   contentLength: number;
+  contentEncoding?: string;
   md5Hash: string;
   metadata?: { [key: string]: string };
+  tags?: { [key: string]: string };
   cacheControl?: string;
   makePublic?: boolean;
 }

@@ -16,7 +16,7 @@ export default function uploadFileFactory(providerOptions: GcpProviderOptions): 
   const storageBucket = storage.bucket(bucket);
 
   return {
-    upload: ({ source, destFileName, contentType, metadata, cacheControl, makePublic }) => {
+    upload: ({ source, destFileName, contentType, metadata, cacheControl, contentEncoding, makePublic }) => {
       return new Promise((resolve, reject) => {
         const writeStream = storageBucket.file(destFileName).createWriteStream({
           // gzip: true,
@@ -25,6 +25,7 @@ export default function uploadFileFactory(providerOptions: GcpProviderOptions): 
           metadata: {
             metadata,
             cacheControl,
+            contentEncoding,
           },
         });
         writeStream.on('error', (err) => {
