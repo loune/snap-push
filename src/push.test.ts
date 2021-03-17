@@ -287,6 +287,17 @@ test('push with s3', async () => {
       Test: 'test string 1',
       Test2: 'test string 2',
     },
+    logger: {
+      error(...args) {
+        console.error(...args);
+      },
+      warn(...args) {
+        console.warn(...args);
+      },
+      info(...args) {
+        console.log(...args);
+      },
+    },
   });
 
   // assert
@@ -302,9 +313,9 @@ test('push with s3', async () => {
   expect(s3result.Contents?.map((x) => x.Key).sort()).toEqual(result.uploadedKeys.sort());
 
   // cleanup
-  await Promise.all(
-    result.uploadedKeys.map((key) => s3.deleteObject({ Bucket: s3TestBucketName, Key: key }).promise())
-  );
+  // await Promise.all(
+  //   result.uploadedKeys.map((key) => s3.deleteObject({ Bucket: s3TestBucketName, Key: key }).promise())
+  // );
 });
 
 test('push with azure', async () => {

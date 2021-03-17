@@ -5,17 +5,16 @@ name: Integration Test
 
 on:
   push:
-    branches: [master]
   pull_request:
     branches: [master]
 
 jobs:
-  build:
+  build_and_test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [14.x]
 
     steps:
       - uses: actions/checkout@v2
