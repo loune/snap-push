@@ -272,7 +272,7 @@ test('change working directory', async () => {
 });
 
 test('push with s3', async () => {
-  const prefix = '__test3/';
+  const prefix = `__snap-push-test${Date.now()}/`;
   const providerOptions = { bucket: s3TestBucketName };
   const pat = ['./src/**/*'];
   const filesFromPat = (await fg(pat)) as string[];
@@ -322,7 +322,7 @@ test('push with azure', async () => {
   await new Promise((r) => setTimeout(r, 4000));
 
   try {
-    const prefix = '__test3/';
+    const prefix = `__snap-push-test${Date.now()}/`;
     // test with azurite
     const accountName = 'devstoreaccount1';
     const providerOptions = {
@@ -380,7 +380,7 @@ test('push with azure', async () => {
 
 test('push with gcp', async () => {
   const gcpTestBucketName = 'snap-push-test';
-  const prefix = '__test3/';
+  const prefix = `__snap-push-test${Date.now()}/`;
   const providerOptions = { bucket: gcpTestBucketName };
   const pat = ['./src/**/*'];
   const filesFromPat = (await fg(pat)) as string[];
