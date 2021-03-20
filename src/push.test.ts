@@ -132,6 +132,10 @@ function getMockProvider(initalFiles: UploadFile[]): UploadFileProvider {
   return mockProvider;
 }
 
+function findMockFile(provider: UploadFileProvider, filename: string): UploadFile {
+  return (provider as any).files.find((file: UploadFile) => file.name === filename);
+}
+
 test('delete files that no longer exists', async () => {
   const pat = ['./src/**/*'];
   const initialFiles = [{ name: 'f1', size: 4, md5: 'sdf', metadata: {} }];
@@ -179,7 +183,7 @@ test('delete files that no longer exists, but leaving compressed versions', asyn
     shouldDeleteExtraFiles: true,
     files: pat,
     provider,
-    autoCompress: { encodings: ['br', 'gzip'], fileExtensions: ['ts'] },
+    encoding: { contentEncodings: ['raw', 'br', 'gzip'], fileExtensions: ['ts'] },
   });
 
   // assert
@@ -219,7 +223,7 @@ test('upload with compressed copies of certain files', async () => {
   const result = await push({
     files: pat,
     provider,
-    autoCompress: { fileExtensions: ['d.ts'], encodings: ['br', 'gzip'] },
+    encoding: { fileExtensions: ['d.ts'], contentEncodings: ['raw', 'br', 'gzip'] },
   });
 
   // assert
@@ -229,10 +233,40 @@ test('upload with compressed copies of certain files', async () => {
   );
   expect(result.uploadedKeys).not.toEqual(expect.arrayContaining(['src/s3.ts.br', 'src/s3.ts.gz']));
 
-  const mimeMd5 = (provider as any).files[0].md5;
-  expect((provider as any).files[0].metadata.decodedHash).toEqual(mimeMd5);
-  expect((provider as any).files[1].metadata.decodedHash).toEqual(mimeMd5);
-  expect((provider as any).files[2].metadata.hash).toEqual(mimeMd5);
+  const mimeMd5 = findMockFile(provider, 'src/Mime.d.ts').md5;
+  expect(findMockFile(provider, 'src/Mime.d.ts.br').metadata.decodedHash).toEqual(mimeMd5);
+  expect(findMockFile(provider, 'src/Mime.d.ts.gz').metadata.decodedHash).toEqual(mimeMd5);
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.hash).toEqual(mimeMd5);
+});
+
+test('upload with compressed copies of certain files determined with function', async () => {
+  const pat = ['./src/Mime.d.ts', './src/s3.ts'];
+  const initialFiles: UploadFile[] = [];
+  const provider = getMockProvider(initialFiles);
+
+  // act
+  const result = await push({
+    files: pat,
+    provider,
+    encoding: (fileName, fileSize, mimeType) =>
+      fileName.includes('s3.ts')
+        ? [
+            { destFileName: `${fileName}.br`, encoding: 'br' },
+            { destFileName: fileName, encoding: 'raw' },
+          ]
+        : undefined,
+  });
+
+  // assert
+  expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts']));
+  expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts.br', 'src/s3.ts']));
+  expect(result.uploadedKeys).not.toEqual(
+    expect.arrayContaining(['src/Mime.d.ts.br', 'src/Mime.d.ts.gz', 'src/s3.ts.gz'])
+  );
+
+  const mimeMd5 = findMockFile(provider, 'src/s3.ts').md5;
+  expect(findMockFile(provider, 'src/s3.ts.br').metadata.decodedHash).toEqual(mimeMd5);
+  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(mimeMd5);
 });
 
 test('upload files to mock file provider', async () => {
@@ -251,12 +285,12 @@ test('upload files to mock file provider', async () => {
   expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts']));
   expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts']));
 
-  expect((provider as any).files[0].metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/Mime.d.ts' }));
-  expect((provider as any).files[1].metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
-  expect((provider as any).files[0].size).toEqual(fs.statSync('src/Mime.d.ts').size);
-  expect((provider as any).files[1].size).toEqual(fs.statSync('src/s3.ts').size);
-  expect((provider as any).files[0].metadata.hash).toEqual((provider as any).files[0].md5);
-  expect((provider as any).files[1].metadata.hash).toEqual((provider as any).files[1].md5);
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/Mime.d.ts' }));
+  expect(findMockFile(provider, 'src/s3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
+  expect(findMockFile(provider, 'src/Mime.d.ts').size).toEqual(fs.statSync('src/Mime.d.ts').size);
+  expect(findMockFile(provider, 'src/s3.ts').size).toEqual(fs.statSync('src/s3.ts').size);
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.hash).toEqual(findMockFile(provider, 'src/Mime.d.ts').md5);
+  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
 });
 
 test('change working directory', async () => {

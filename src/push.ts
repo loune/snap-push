@@ -10,17 +10,17 @@ import getFileMimeType from './contentType';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
 
-type SupportedContentEncoding = 'gzip' | 'br';
+export type SupportedContentEncoding = 'raw' | 'gzip' | 'br';
 
-interface CompressOptions {
-  /** file extensions to compress */
+export interface EncodingOptions {
+  /** File extensions to compress. */
   fileExtensions?: string[];
-  /** file mime types to compress */
+  /** File mime types to compress. */
   mimeTypes?: (string | RegExp)[];
-  /** Minimum file size to compress (default: 0) */
+  /** Minimum file size to compress. (default: 0) */
   minFileSize?: number;
-  /** which content-encoding to support */
-  encodings: SupportedContentEncoding[];
+  /** Which content encoding to apply to files which match the criteria. */
+  contentEncodings: SupportedContentEncoding[];
 }
 
 export interface PushOptions {
@@ -53,7 +53,14 @@ export interface PushOptions {
   /** Set file to be publicly accessible */
   makePublic?: boolean | ((filename: string) => boolean);
   /** automtically generate compressed versions of files with certain conditions */
-  autoCompress?: CompressOptions | ((fileName: string, fileSize: number, mimeType: string) => SupportedContentEncoding);
+  encoding?:
+    | EncodingOptions
+    | ((
+        fileName: string,
+        fileSize: number,
+        mimeType: string
+      ) => { destFileName: string; encoding: SupportedContentEncoding }[] | undefined);
+  /** Logger instance to use */
   logger?: AbstractLogger;
 }
 
@@ -67,8 +74,9 @@ export interface PushResult {
 }
 
 const encodingExtensionsMap: { [encoding: string]: string } = {
-  gzip: 'gz',
-  br: 'br',
+  raw: '',
+  gzip: '.gz',
+  br: '.br',
 };
 
 async function getMD5(fileName: string): Promise<string> {
@@ -100,15 +108,15 @@ async function getSize(fileName: string): Promise<number> {
   });
 }
 
-function getSourceStream(fileName: string, destFileName: string): { contentEncoding?: string; stream: Readable } {
-  if (!fileName.toLowerCase().endsWith('.gz') && destFileName.toLowerCase().endsWith('.gz')) {
+function getSourceStream(fileName: string, encoding: SupportedContentEncoding): Readable {
+  if (encoding === 'gzip') {
     // apply gzip
     const gz = zlib.createGzip();
     const stream = fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }).pipe(gz);
-    return { contentEncoding: 'gzip', stream };
+    return stream;
   }
 
-  if (!fileName.toLowerCase().endsWith('.br') && destFileName.toLowerCase().endsWith('.br')) {
+  if (encoding === 'br') {
     // apply br
     // brotli check
     if (!zlib.createBrotliCompress) {
@@ -117,30 +125,30 @@ function getSourceStream(fileName: string, destFileName: string): { contentEncod
 
     const br = zlib.createBrotliCompress();
     const stream = fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }).pipe(br);
-    return { contentEncoding: 'br', stream };
+    return stream;
   }
 
-  return { stream: fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE }) };
+  return fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE });
 }
 
 function getFileEncodings(
-  options: CompressOptions | undefined,
+  options: EncodingOptions | undefined,
   fileName: string,
   fileSize: number,
   fileMime: string
-): string[] {
+): SupportedContentEncoding[] {
   if (!options) {
-    return [fileName];
+    return ['raw'];
   }
 
   if (options.minFileSize && fileSize < options.minFileSize) {
-    return [fileName];
+    return ['raw'];
   }
 
   let shouldCompress = false;
   if (options.fileExtensions) {
     shouldCompress = options.fileExtensions.some(
-      (ext) => fileName.endsWith(`.${ext}`) || (ext[0] === '.' && fileName.endsWith(ext))
+      (ext) => (ext[0] === '.' && fileName.endsWith(ext)) || fileName.endsWith(`.${ext}`)
     );
   }
 
@@ -154,13 +162,22 @@ function getFileEncodings(
     });
   }
 
-  if (shouldCompress) {
-    const zippedFiles = options.encodings.map((encoding) => `${fileName}.${encodingExtensionsMap[encoding]}`);
-    zippedFiles.push(fileName);
-    return zippedFiles;
+  if (!shouldCompress) {
+    return ['raw'];
   }
 
-  return [fileName];
+  return options.contentEncodings;
+}
+
+function getFileEncodingKeys(
+  fileName: string,
+  encodings: SupportedContentEncoding[]
+): { destFileName: string; encoding: SupportedContentEncoding }[] {
+  const zippedFiles = encodings.map((encoding) => ({
+    destFileName: `${fileName}${encodingExtensionsMap[encoding]}`,
+    encoding,
+  }));
+  return zippedFiles;
 }
 
 export function pathTrimStart(filePath: string): string {
@@ -188,7 +205,7 @@ export default async function push({
   uploadNewFilesFirst = true,
   listIncludeMetadata = false,
   makePublic = false,
-  autoCompress,
+  encoding: encodingOption,
   logger = { info() {}, warn() {}, error() {} }, // eslint-disable-line @typescript-eslint/no-empty-function
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = provider;
@@ -240,12 +257,16 @@ export default async function push({
         const contentLength = await getSize(localFileName);
         const md5Hash = await getMD5(localFileName);
 
-        const encodedFileKeys =
-          typeof autoCompress === 'function'
-            ? autoCompress(destKey, contentLength, contentType)
-            : getFileEncodings(autoCompress, destKey, contentLength, contentType);
+        let encodedFileMap =
+          typeof encodingOption === 'function'
+            ? encodingOption(destKey, contentLength, contentType)
+            : getFileEncodingKeys(destKey, getFileEncodings(encodingOption, destKey, contentLength, contentType));
 
-        processedKeys.push(...encodedFileKeys);
+        if (encodedFileMap === undefined) {
+          encodedFileMap = getFileEncodingKeys(destKey, ['raw']);
+        }
+
+        processedKeys.push(...encodedFileMap.map((fileNameEnc) => fileNameEnc.destFileName));
         const existingFile = existingFilesMap.get(destKey);
         if (onlyUploadChanges && existingFile && existingFile.md5 === md5Hash) {
           // same file
@@ -254,14 +275,15 @@ export default async function push({
           return;
         }
 
-        for (const key of encodedFileKeys) {
+        for (const fileNameEnc of encodedFileMap) {
           try {
-            const { contentEncoding, stream } = getSourceStream(localFileName, key);
+            const stream = getSourceStream(localFileName, fileNameEnc.encoding);
+            const contentEncoding = fileNameEnc.encoding === 'raw' ? undefined : fileNameEnc.encoding;
             // eslint-disable-next-line no-await-in-loop
             await uploadFileProvider.upload({
               contentLength,
               source: stream,
-              destFileName: key,
+              destFileName: fileNameEnc.destFileName,
               contentType,
               contentEncoding,
               md5Hash,
@@ -270,10 +292,10 @@ export default async function push({
               cacheControl: getCacheControl ? getCacheControl(fileName) : undefined,
               makePublic: getMakePublic ? getMakePublic(fileName) : undefined,
             });
-            logger.info(`Uploaded ${key} of type ${contentType} hash ${md5Hash}`);
-            uploadedKeys.push(key);
+            logger.info(`Uploaded ${fileNameEnc.destFileName} of type ${contentType} hash ${md5Hash}`);
+            uploadedKeys.push(fileNameEnc.destFileName);
           } catch (err) {
-            logger.error(`Failed to upload ${key}: ${err}`);
+            logger.error(`Failed to upload ${fileNameEnc.destFileName}: ${err}`);
           }
         }
 

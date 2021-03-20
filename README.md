@@ -77,17 +77,40 @@ const providerOptions = {
 
 ### Auto compression
 
-Files uploaded with specific `fileExtensions` or `mimeTypes` could be automatically compressed with `br` (Brotli) and/or `gzip` (GZip) using the `autoCompress` option. This is useful when used in conjuction with a CDN with rules to route requests with the appropriate `Accept-Encoding` to the compressed copy.
+Files uploaded with specific `fileExtensions` or `mimeTypes` could be automatically compressed with `br` (Brotli) and/or `gzip` (GZip) using the `encoding` option. This is useful when used in conjuction with a CDN with rules to route requests with the appropriate `Accept-Encoding` to the compressed copy.
+
+#### Examples
+
+Encode files with `.txt` or `.html` file name extensions or mime/content-type containing `text` or `xml`, with `raw` (orginal, no encoding), `br` (brotli) and `gz` (gzip) encodings. `raw` will have the original file name. `br` will have a the original file name appended with `.br`, and `gzip` original appended with `.gz`.
 
 ```js
 const result = await push({
   currentWorkingDirectory: 'dist',
   files: './**/*',
   makePublic: true,
-  autoCompress: {
+  encoding: {
     fileExtensions: ['txt', 'html'],
     mimeTypes: [/text/, /xml/],
-    encodings: ['br', 'gzip'],
+    contentEncodings: ['raw', 'br', 'gzip'],
+  },
+  provider: s3FileProvider(providerOptions),
+});
+```
+
+Encode files with `gzip` using the original file name.
+
+```js
+const result = await push({
+  currentWorkingDirectory: 'dist',
+  files: './**/*',
+  makePublic: true,
+  encoding: (fileName) => {
+    return [
+      {
+        destFileName: fileName,
+        encoding: 'gzip',
+      },
+    ];
   },
   provider: s3FileProvider(providerOptions),
 });
