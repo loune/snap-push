@@ -1,6 +1,6 @@
 {
   "name": "snap-push",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Deliver static website files to Amazon S3, Azure or GCP.",
   "main": "dist/push.js",
   "engines": {
