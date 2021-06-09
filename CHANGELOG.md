@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `dryRun` option that pretends to upload (and delete) files for testing purposes.
+- `ignoreFile` option to allow skipping upload of certain files.
+- `substituteFile` option to allow substituting upload of a local file with another.
+- `PushResult.errorKeys` with keys which had upload errors.
+
 ## [4.0.0] - 2021-05-05
 
 ### Added

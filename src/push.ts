@@ -7,11 +7,13 @@ import zlib from 'zlib';
 import { Readable } from 'stream';
 import { UploadFileProvider, UploadFile, AbstractLogger } from './types';
 import getFileMimeType from './contentType';
+import dryRunProvider from './dryrun';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
 
 export type SupportedContentEncoding = 'raw' | 'gzip' | 'br';
 
+/** Options for the content encoding. */
 export interface EncodingOptions {
   /** File extensions to compress. */
   fileExtensions?: string[];
@@ -23,6 +25,7 @@ export interface EncodingOptions {
   contentEncodings: SupportedContentEncoding[];
 }
 
+/** Options for the push function. */
 export interface PushOptions {
   /** Change the current working directory. Affects the files glob and the upload file name */
   currentWorkingDirectory?: string;
@@ -44,8 +47,12 @@ export interface PushOptions {
   cacheControl?: string | ((filename: string) => string);
   /** Use the MD5 checksum to determine whether the file has changed */
   onlyUploadChanges?: boolean;
-  /** Delete files in remote that are does not exist locally */
+  /** Delete files in remote that does not exist locally */
   shouldDeleteExtraFiles?: boolean | ((extraFile: UploadFile) => boolean);
+  /** Function to determine whether file should be uploaded or skipped/ignored. All files in the `files` pattern array are uploaded by default. */
+  ignoreFile?: (filename: string) => boolean;
+  /** Function to replace uploading of a local file with another local file, but keep the original name. If undefined, don't do substitution. */
+  substituteFile?: (filename: string) => string | undefined;
   /** Priorities upload of new files. Useful for website to ensure there are no broken links due to missing files during upload */
   uploadNewFilesFirst?: boolean;
   /** Try to get metadata when listing existing files so it will be available in UploadFile of shouldDeleteExtraFiles */
@@ -60,17 +67,26 @@ export interface PushOptions {
         fileSize: number,
         mimeType: string
       ) => { destFileName: string; encoding: SupportedContentEncoding }[] | undefined);
+  /** If dryRun, then pretend to upload but don't actually do it. */
+  dryRun?: boolean;
   /** Logger instance to use */
   logger?: AbstractLogger;
 }
 
+/** Result of the push function. */
 export interface PushResult {
-  /** Milliseconds it took to upload */
+  /** Milliseconds it took to upload. */
   elasped: number;
+  /** Source file names that were uploaded. */
   uploadedFiles: string[];
+  /** Uploaded destination keys. */
   uploadedKeys: string[];
+  /** Deleted keys at the destination. */
   deletedKeys: string[];
+  /** Skipped upload for unchanged keys at the destination. */
   skippedKeys: string[];
+  /** Destination keys which failed to be uploaded or deleted. */
+  errorKeys: string[];
 }
 
 const encodingExtensionsMap: { [encoding: string]: string } = {
@@ -190,6 +206,11 @@ export function pathTrimStart(filePath: string): string {
   return filePath;
 }
 
+/**
+ * Upload files
+ * @param options - Push options
+ * @returns Push result
+ * */
 export default async function push({
   currentWorkingDirectory,
   files,
@@ -201,20 +222,24 @@ export default async function push({
   provider,
   cacheControl,
   onlyUploadChanges = true,
+  ignoreFile,
+  substituteFile,
   shouldDeleteExtraFiles = false,
   uploadNewFilesFirst = true,
   listIncludeMetadata = false,
   makePublic = false,
   encoding: encodingOption,
+  dryRun = false,
   logger = { info() {}, warn() {}, error() {} }, // eslint-disable-line @typescript-eslint/no-empty-function
 }: PushOptions): Promise<PushResult> {
-  const uploadFileProvider = provider;
+  const uploadFileProvider = dryRun ? dryRunProvider({ logger, realProvider: provider }) : provider;
   const limit = pLimit(concurrency || 1);
   const filesFromGlob = await glob(files, { ...(currentWorkingDirectory ? { cwd: currentWorkingDirectory } : {}) });
   const uploadedFiles: string[] = [];
   const uploadedKeys: string[] = [];
   const skippedKeys: string[] = [];
   const processedKeys: string[] = [];
+  const errorKeys: string[] = [];
   const startTime = Date.now();
   const defaultContentType = 'application/octet-stream';
   const getMetadata = typeof metadata === 'function' ? metadata : () => metadata;
@@ -250,9 +275,20 @@ export default async function push({
   await Promise.all(
     filesFromGlob.map((file) =>
       limit(async () => {
-        const fileName = pathTrimStart(file);
-        const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
+        let fileName = pathTrimStart(file);
+
+        if (ignoreFile?.(fileName)) {
+          return;
+        }
+
         const destKey = `${destPathPrefix}${fileName}`;
+
+        const replacementFileName = substituteFile?.(fileName);
+        if (replacementFileName !== undefined) {
+          fileName = replacementFileName;
+        }
+
+        const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
         const contentType = (await getFileMimeType(localFileName, mimeTypes)) || defaultContentType;
         const contentLength = await getSize(localFileName);
         const md5Hash = await getMD5(localFileName);
@@ -296,6 +332,7 @@ export default async function push({
             uploadedKeys.push(fileNameEnc.destFileName);
           } catch (err) {
             logger.error(`Failed to upload ${fileNameEnc.destFileName}: ${err}`);
+            errorKeys.push(fileNameEnc.destFileName);
           }
         }
 
@@ -323,6 +360,7 @@ export default async function push({
               deletedKeys.push(file.name);
             } catch (err) {
               logger.error(`Failed to delete ${file.name}: ${err}`);
+              errorKeys.push(file.name);
             }
           }
         })
@@ -336,5 +374,6 @@ export default async function push({
     uploadedKeys,
     deletedKeys,
     skippedKeys,
+    errorKeys,
   };
 }

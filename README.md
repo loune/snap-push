@@ -14,6 +14,7 @@
 - Only upload changed files.
 - Remove files that were deleted locally.
 - Prioritise upload of new files first.
+- Dry Run / Pretend mode
 
 ## Installation
 

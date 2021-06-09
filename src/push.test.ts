@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import AWS from 'aws-sdk';
 import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/storage-blob';
 import fg from 'fast-glob';
@@ -11,7 +12,7 @@ import push, { pathTrimStart } from './push';
 import s3FileProvider from './s3';
 import azureFileProvider from './azure';
 import gcpFileProvider from './gcp';
-import { UploadFileProvider, UploadFile } from './types';
+import { UploadFileProvider, UploadFile, AbstractLogger, UploadArgs } from './types';
 
 const s3TestBucketName = 'pouch-test';
 
@@ -92,7 +93,7 @@ class Md5LengthStream extends Writable {
   }
 }
 
-function getMockProvider(initalFiles: UploadFile[]): UploadFileProvider {
+function getMockProvider(initalFiles: UploadFile[], customUploadHook?: (args: UploadArgs) => void): UploadFileProvider {
   let files: UploadFile[] = [...initalFiles];
   const mockProvider: UploadFileProvider = {
     async upload(args) {
@@ -102,6 +103,8 @@ function getMockProvider(initalFiles: UploadFile[]): UploadFileProvider {
       } else if (args.destFileName.endsWith('.br')) {
         contentEncoding = 'br';
       }
+
+      customUploadHook?.(args);
 
       const lstream = new Md5LengthStream(undefined, contentEncoding);
 
@@ -134,6 +137,39 @@ function getMockProvider(initalFiles: UploadFile[]): UploadFileProvider {
 
 function findMockFile(provider: UploadFileProvider, filename: string): UploadFile {
   return (provider as any).files.find((file: UploadFile) => file.name === filename);
+}
+
+class MockLogger implements AbstractLogger {
+  logs: string[] = [];
+  logToConsole = false;
+
+  constructor(logToConsole: boolean) {
+    this.logToConsole = logToConsole;
+  }
+
+  info(message: string, ...args: any[]) {
+    this.logs.push(message);
+    if (this.logToConsole) {
+      // eslint-disable-next-line no-console
+      console.log(message, ...args);
+    }
+  }
+
+  warn(message: string, ...args: any[]) {
+    this.logs.push(message);
+    if (this.logToConsole) {
+      // eslint-disable-next-line no-console
+      console.warn(message, ...args);
+    }
+  }
+
+  error(message: string, ...args: any[]) {
+    this.logs.push(message);
+    if (this.logToConsole) {
+      // eslint-disable-next-line no-console
+      console.error(message, ...args);
+    }
+  }
 }
 
 test('delete files that no longer exists', async () => {
@@ -269,6 +305,116 @@ test('upload with compressed copies of certain files determined with function', 
   expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(mimeMd5);
 });
 
+test('pretend to upload files to mock file provider with dryRun', async () => {
+  const pat = ['./src/Mime.d.ts', './src/s3.ts'];
+  const initialFiles: UploadFile[] = [];
+  const provider = getMockProvider(initialFiles);
+  const logger = new MockLogger(false);
+
+  // act
+  const result = await push({
+    files: pat,
+    provider,
+    tags: (fileName) => ({ tagFN: fileName }),
+    dryRun: true,
+    logger,
+    mimeTypes: {
+      'application/typescript': ['ts'],
+    },
+  });
+
+  // assert
+  expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts']));
+  expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts']));
+
+  expect(logger.logs[0]).toEqual('Pretend upload: src/Mime.d.ts (application/typescript)');
+  expect(logger.logs[2]).toEqual('Pretend upload: src/s3.ts (application/typescript)');
+  expect(findMockFile(provider, 'src/Mime.d.ts')).toBeUndefined();
+  expect(findMockFile(provider, 'src/s3.ts')).toBeUndefined();
+});
+
+test('upload files with substituteFile to mock file provider', async () => {
+  const pat = ['./src/Mime.d.ts', './src/s3.ts'];
+  const initialFiles: UploadFile[] = [];
+  const provider = getMockProvider(initialFiles);
+  const logger = new MockLogger(false);
+
+  // act
+  const result = await push({
+    files: pat,
+    provider,
+    tags: (fileName) => ({ tagFN: fileName }),
+    substituteFile: (filename: string) => (filename === 'src/s3.ts' ? 'src/azure.ts' : undefined),
+    logger,
+  });
+
+  // assert
+  expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/azure.ts']));
+  expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/Mime.d.ts', 'src/s3.ts']));
+
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/Mime.d.ts' }));
+  expect(findMockFile(provider, 'src/s3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/azure.ts' }));
+  expect(findMockFile(provider, 'src/Mime.d.ts').size).toEqual(fs.statSync('src/Mime.d.ts').size);
+  expect(findMockFile(provider, 'src/s3.ts').size).toEqual(fs.statSync('src/azure.ts').size);
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.hash).toEqual(findMockFile(provider, 'src/Mime.d.ts').md5);
+  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
+});
+
+test('upload files error in mock file provider', async () => {
+  const pat = ['./src/Mime.d.ts', './src/s3.ts'];
+  const initialFiles: UploadFile[] = [];
+  const provider = getMockProvider(initialFiles, (args) => {
+    if (args.destFileName === 'src/s3.ts') {
+      throw new Error('test upload error');
+    }
+  });
+  const logger = new MockLogger(false);
+
+  // act
+  const result = await push({
+    files: pat,
+    provider,
+    tags: (fileName) => ({ tagFN: fileName }),
+    substituteFile: (filename: string) => (filename === 'src/s3.ts' ? 'src/azure.ts' : undefined),
+    logger,
+  });
+
+  // assert
+  expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/Mime.d.ts']));
+  expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/Mime.d.ts']));
+  expect(result.errorKeys).toEqual(expect.arrayContaining(['src/s3.ts']));
+
+  expect(findMockFile(provider, 'src/s3.ts')).toBeUndefined();
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/Mime.d.ts' }));
+  expect(findMockFile(provider, 'src/Mime.d.ts').size).toEqual(fs.statSync('src/Mime.d.ts').size);
+  expect(findMockFile(provider, 'src/Mime.d.ts').metadata.hash).toEqual(findMockFile(provider, 'src/Mime.d.ts').md5);
+});
+
+test('upload files with ignoreFile', async () => {
+  const pat = ['./src/Mime.d.ts', './src/s3.ts'];
+  const initialFiles: UploadFile[] = [];
+  const provider = getMockProvider(initialFiles);
+  const logger = new MockLogger(false);
+
+  // act
+  const result = await push({
+    files: pat,
+    provider,
+    tags: (fileName) => ({ tagFN: fileName }),
+    ignoreFile: (filename: string) => filename === 'src/Mime.d.ts',
+    logger,
+  });
+
+  // assert
+  expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/s3.ts']));
+  expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/s3.ts']));
+
+  expect(findMockFile(provider, 'src/Mime.d.ts')).toBeUndefined();
+  expect(findMockFile(provider, 'src/s3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
+  expect(findMockFile(provider, 'src/s3.ts').size).toEqual(fs.statSync('src/s3.ts').size);
+  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
+});
+
 test('upload files to mock file provider', async () => {
   const pat = ['./src/Mime.d.ts', './src/s3.ts'];
   const initialFiles: UploadFile[] = [];
@@ -321,17 +467,7 @@ test('push with s3', async () => {
       Test: 'test string 1',
       Test2: 'test string 2',
     },
-    logger: {
-      error(...args) {
-        console.error(...args);
-      },
-      warn(...args) {
-        console.warn(...args);
-      },
-      info(...args) {
-        console.log(...args);
-      },
-    },
+    logger: new MockLogger(true),
   });
 
   // assert
