@@ -360,6 +360,34 @@ test('upload files with substituteFile to mock file provider', async () => {
   expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
 });
 
+test('upload files with substituteFile to mock file provider on changed working directory', async () => {
+  const pat = ['./Mime.d.ts', './s3.ts'];
+  const initialFiles: UploadFile[] = [];
+  const provider = getMockProvider(initialFiles);
+  const logger = new MockLogger(false);
+
+  // act
+  const result = await push({
+    files: pat,
+    provider,
+    tags: (fileName) => ({ tagFN: fileName }),
+    substituteFile: (filename: string) => (filename === 's3.ts' ? 'azure.ts' : undefined),
+    logger,
+    currentWorkingDirectory: 'src',
+  });
+
+  // assert
+  expect(result.uploadedFiles).toEqual(expect.arrayContaining(['Mime.d.ts', 'azure.ts']));
+  expect(result.uploadedKeys).toEqual(expect.arrayContaining(['Mime.d.ts', 's3.ts']));
+
+  expect(findMockFile(provider, 'Mime.d.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'Mime.d.ts' }));
+  expect(findMockFile(provider, 's3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'azure.ts' }));
+  expect(findMockFile(provider, 'Mime.d.ts').size).toEqual(fs.statSync('src/Mime.d.ts').size);
+  expect(findMockFile(provider, 's3.ts').size).toEqual(fs.statSync('src/azure.ts').size);
+  expect(findMockFile(provider, 'Mime.d.ts').metadata.hash).toEqual(findMockFile(provider, 'Mime.d.ts').md5);
+  expect(findMockFile(provider, 's3.ts').metadata.hash).toEqual(findMockFile(provider, 's3.ts').md5);
+});
+
 test('upload files error in mock file provider', async () => {
   const pat = ['./src/Mime.d.ts', './src/s3.ts'];
   const initialFiles: UploadFile[] = [];
