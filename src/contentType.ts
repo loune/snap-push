@@ -27,7 +27,7 @@ async function readChars(filename: string, numOfChars: number): Promise<string> 
 export default async function getFileMimeType(filename: string, customMime: any = null): Promise<string> {
   if (customMime && (!customMime.constructor || customMime.constructor.name !== 'Mime')) {
     const types = customMime;
-    // eslint-disable-next-line global-require
+    // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
     customMime = new Mime(require('mime/types/standard'), require('mime/types/other'));
     customMime.define(types, true);
   }

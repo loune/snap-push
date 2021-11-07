@@ -1,11 +1,6 @@
 {
   "plugins": ["@typescript-eslint"],
-  "extends": [
-    "airbnb-base",
-    "plugin:@typescript-eslint/recommended",
-    "prettier/@typescript-eslint",
-    "plugin:prettier/recommended"
-  ],
+  "extends": ["airbnb-base", "plugin:@typescript-eslint/recommended", "prettier", "plugin:prettier/recommended"],
   "rules": {
     "class-methods-use-this": "off",
     "no-param-reassign": "off",

@@ -45,7 +45,7 @@ test('test content type txt', async () => {
 
 test('test content type override (Mime class)', async () => {
   const filename = `test-custom-${Date.now()}.pub`;
-  // eslint-disable-next-line global-require
+  // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
   const customMime = new Mime(require('mime/types/standard'), require('mime/types/other'));
   customMime.define({ 'text/plain': ['pub'] }, true);
   const type = await getFileMimeType(filename, customMime);

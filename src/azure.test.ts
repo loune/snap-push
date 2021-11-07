@@ -18,6 +18,18 @@ test('azure uploadFile', async () => {
     '39858',
   ]);
 
+  azurite.stdout.on('data', (data) => {
+    console.log(`azurite stdout: ${data}`);
+  });
+
+  azurite.stderr.on('data', (data) => {
+    console.error(`azurite stderr: ${data}`);
+  });
+
+  azurite.on('close', (code) => {
+    console.log(`azurite exited with code ${code}`);
+  });
+
   await new Promise((r) => setTimeout(r, 4000));
 
   try {
