@@ -37,7 +37,7 @@ export default function uploadFileFactory(providerOptions: AzureProviderOptions)
     }) => {
       const blockBlobClient = containerClient.getBlockBlobClient(destFileName);
 
-      await blockBlobClient.upload(() => source, contentLength, {
+      await blockBlobClient.uploadStream(source, source.readableHighWaterMark, undefined, {
         blobHTTPHeaders: {
           blobContentType: contentType,
           blobContentMD5: new Uint8Array(Buffer.from(md5Hash, 'hex')),

@@ -1,7 +1,7 @@
 import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
 import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
-import uploadFileFactory from './azure';
+import uploadFileFactory, { AzureProviderOptions } from './azure';
 
 jest.setTimeout(20000);
 
@@ -14,6 +14,7 @@ test('azure uploadFile', async () => {
     '--silent',
     '--location',
     'azurite',
+    '--loose',
     '--blobPort',
     '39858',
   ]);
@@ -26,8 +27,11 @@ test('azure uploadFile', async () => {
     console.error(`azurite stderr: ${data}`);
   });
 
-  azurite.on('close', (code) => {
-    console.log(`azurite exited with code ${code}`);
+  const azuriteEnd = new Promise<void>((resolve) => {
+    azurite.on('close', (code) => {
+      console.log(`azurite exited with code ${code}`);
+      resolve();
+    });
   });
 
   await new Promise((r) => setTimeout(r, 4000));
@@ -37,7 +41,7 @@ test('azure uploadFile', async () => {
     const testKeyName = '__s3.test';
     // test with azurite
     const accountName = 'devstoreaccount1';
-    const options = {
+    const options: AzureProviderOptions = {
       credential: new StorageSharedKeyCredential(
         accountName,
         'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
@@ -47,7 +51,7 @@ test('azure uploadFile', async () => {
     };
 
     // Create a container
-    const blobServiceClient = new BlobServiceClient(options.serviceUrl, options.credential);
+    const blobServiceClient = new BlobServiceClient(options.serviceUrl ?? '', options.credential);
 
     const containerClient = blobServiceClient.getContainerClient(options.containerName);
 
@@ -99,5 +103,6 @@ test('azure uploadFile', async () => {
     await containerClient.delete();
   } finally {
     spawnSync('kill', ['-9', azurite.pid.toString()]);
+    await azuriteEnd;
   }
 });

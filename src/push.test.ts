@@ -525,6 +525,7 @@ test('push with azure', async () => {
     '--silent',
     '--location',
     'azurite2',
+    '--loose',
     '--blobPort',
     '39878',
   ]);
@@ -537,8 +538,11 @@ test('push with azure', async () => {
     console.error(`azurite stderr: ${data}`);
   });
 
-  azurite.on('close', (code) => {
-    console.log(`azurite exited with code ${code}`);
+  const azuriteEnd = new Promise<void>((resolve) => {
+    azurite.on('close', (code) => {
+      console.log(`azurite exited with code ${code}`);
+      resolve();
+    });
   });
 
   await new Promise((r) => setTimeout(r, 4000));
@@ -597,6 +601,7 @@ test('push with azure', async () => {
     await containerClient.delete();
   } finally {
     spawnSync('kill', ['-9', azurite.pid.toString()]);
+    await azuriteEnd;
   }
 });
 

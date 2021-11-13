@@ -6,7 +6,7 @@ jest.setTimeout(10000);
 
 test('test content type html', async () => {
   const filename = `test-html-${Date.now()}`;
-  const ws = fs.createWriteStream(filename, { encoding: 'utf8' });
+  const ws = fs.createWriteStream(filename, { encoding: 'utf8', flags: 'as' });
   ws.write('<!DOCTYPE html>\n<html></html>');
   ws.close();
 
@@ -14,12 +14,13 @@ test('test content type html', async () => {
 
   expect(type).toEqual('text/html');
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   fs.unlinkSync(filename);
 });
 
 test('test content type not html', async () => {
   const filename = `test-nothtml-${Date.now()}`;
-  const ws = fs.createWriteStream(filename, { encoding: 'utf8' });
+  const ws = fs.createWriteStream(filename, { encoding: 'utf8', flags: 'as' });
   ws.write('<!DOCTYsdfsdfsPE htmdsfdsfdsl>dfdsn<htmsadsfl></html>');
   ws.close();
 
@@ -27,12 +28,13 @@ test('test content type not html', async () => {
 
   expect(type).toEqual(null);
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   fs.unlinkSync(filename);
 });
 
 test('test content type txt', async () => {
   const filename = `test-text-${Date.now()}.txt`;
-  const ws = fs.createWriteStream(filename, { encoding: 'utf8' });
+  const ws = fs.createWriteStream(filename, { encoding: 'utf8', flags: 'as' });
   ws.write('<!DOCTYPE html>\n<html></html>');
   ws.close();
 
@@ -40,6 +42,7 @@ test('test content type txt', async () => {
 
   expect(type).toEqual('text/plain');
 
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   fs.unlinkSync(filename);
 });
 
