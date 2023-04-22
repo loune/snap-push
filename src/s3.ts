@@ -3,10 +3,10 @@ import {
   HeadObjectCommand,
   ListObjectsV2Command,
   ListObjectsV2CommandOutput,
-  PutObjectCommand,
   S3Client,
   S3ClientConfig,
 } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 import pLimit from 'p-limit';
 import querystring from 'querystring';
 import { UploadFileProvider, UploadFile } from './types';
@@ -40,29 +40,23 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
       makePublic,
     }) => {
       // Upload the stream
-      return new Promise((resolve, reject): void => {
-        myS3.send(
-          new PutObjectCommand({
-            Body: source,
-            Bucket: bucket,
-            Key: destFileName,
-            ContentType: contentType,
-            Metadata: metadata,
-            Tagging: tags ? querystring.stringify(tags) : undefined,
-            ACL: makePublic ? 'public-read' : undefined,
-            // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
-            CacheControl: cacheControl,
-            ContentEncoding: contentEncoding,
-          }),
-          (err): void => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
-          }
-        );
+      const s3upload = new Upload({
+        client: myS3,
+        params: {
+          Body: source,
+          Bucket: bucket,
+          Key: destFileName,
+          ContentType: contentType,
+          Metadata: metadata,
+          Tagging: tags ? querystring.stringify(tags) : undefined,
+          ACL: makePublic ? 'public-read' : undefined,
+          // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
+          CacheControl: cacheControl,
+          ContentEncoding: contentEncoding,
+        },
       });
+
+      await s3upload.done();
     },
     list: async (prefix: string, includeMetadata: boolean) => {
       const results: UploadFile[] = [];

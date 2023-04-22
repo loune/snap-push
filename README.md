@@ -21,13 +21,13 @@
 ### For Amazon S3
 
 ```bash
-yarn add snap-push aws-sdk
+yarn add snap-push @aws-sdk/client-s3 @aws-sdk/lib-storage
 ```
 
 or use npm
 
 ```bash
-npm install snap-push aws-sdk
+npm install snap-push @aws-sdk/client-s3 @aws-sdk/lib-storage
 ```
 
 ### For Azure Storage
