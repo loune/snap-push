@@ -1,10 +1,10 @@
 {
   "name": "snap-push",
   "version": "4.1.0",
-  "description": "Deliver static website files to Amazon S3, Azure or GCP.",
+  "description": "Deliver static website files to Amazon S3, Azure or Google Cloud.",
   "main": "dist/push.js",
   "engines": {
-    "node": ">=8.10"
+    "node": ">=14"
   },
   "bin": {
     "snap-push": "dist/cli.js"
@@ -40,9 +40,9 @@
   },
   "homepage": "https://github.com/loune/snap-push#readme",
   "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.317.0",
     "@azure/storage-blob": "^12.1.1",
-    "@google-cloud/storage": "^5.3.0",
-    "aws-sdk": "^2.663.0"
+    "@google-cloud/storage": "^6.9.5"
   },
   "peerDependenciesMeta": {
     "@azure/storage-blob": {
@@ -51,19 +51,19 @@
     "@google-cloud/storage": {
       "optional": true
     },
-    "aws-sdk": {
+    "@aws-sdk/client-s3": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.317.0",
     "@azure/storage-blob": "^12.1.1",
-    "@google-cloud/storage": "^5.3.0",
-    "@types/jest": "^27.0.2",
-    "@types/mime": "^2.0.3",
-    "@types/node": "^12",
+    "@google-cloud/storage": "^6.9.5",
+    "@types/jest": "^29.5.1",
+    "@types/mime": "^3.0.1",
+    "@types/node": "^14",
     "@typescript-eslint/eslint-plugin": "^5.3.0",
     "@typescript-eslint/parser": "^5.3.0",
-    "aws-sdk": "^2.663.0",
     "azurite": "^3.10.0",
     "env-cmd": "^10.1.0",
     "eslint": "^8.2.0",
@@ -72,15 +72,15 @@
     "eslint-import-resolver-typescript": "^3.5.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-prettier": "^4.0.0",
-    "jest": "^27.3.1",
+    "jest": "^29.5.0",
     "prettier": "^2.1.2",
-    "rimraf": "^3.0.2",
-    "ts-jest": "^27.0.7",
-    "typescript": "^4.0.5"
+    "rimraf": "^5.0.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "fast-glob": "^3.2.4",
-    "mime": "^2.4.2",
+    "mime": "^3.0.0",
     "p-limit": "^3.0.2",
     "yargs": "^17.2.1"
   }

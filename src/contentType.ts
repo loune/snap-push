@@ -3,7 +3,7 @@ import Mime from 'mime/Mime';
 import fs from 'fs';
 
 async function readChars(filename: string, numOfChars: number): Promise<string> {
-  const buf: Buffer[] = [];
+  const buf: (Buffer | string)[] = [];
   let bufLen = 0;
   return new Promise((resolve, reject): void => {
     const rs = fs.createReadStream(filename, { encoding: 'utf8' });

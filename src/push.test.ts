@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import AWS from 'aws-sdk';
+import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/storage-blob';
 import fg from 'fast-glob';
 import { Storage } from '@google-cloud/storage';
@@ -28,7 +28,7 @@ class Md5LengthStream extends Writable {
   decodedHash = '';
   contentDecoder?: (buffer: Buffer, callback: (err: Error | null, result: Buffer) => void) => void;
   buffer: Buffer[] = [];
-  enc = '';
+  enc: any = '';
 
   constructor(opt?: any, contentEncoding?: string) {
     super(opt);
@@ -50,7 +50,7 @@ class Md5LengthStream extends Writable {
   }
 
   // eslint-disable-next-line no-underscore-dangle
-  _write(chunk: any, enc: string, callback: (err?: Error | null) => void) {
+  _write(chunk: any, enc: any, callback: (err?: Error | null) => void) {
     // store chunk, then call cb when done
     this.size += chunk.length;
 
@@ -503,8 +503,8 @@ test('push with s3', async () => {
   expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
   expect(result.elasped).toBeGreaterThan(0);
 
-  const s3 = new AWS.S3();
-  const s3result = await s3.listObjectsV2({ Bucket: s3TestBucketName, Prefix: prefix }).promise();
+  const s3 = new S3Client({});
+  const s3result = await s3.send(new ListObjectsV2Command({ Bucket: s3TestBucketName, Prefix: prefix }));
   expect(s3result.Contents?.map((x) => x.Key).sort()).toEqual(
     filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort()
   );

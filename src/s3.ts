@@ -1,11 +1,19 @@
-import AWS from 'aws-sdk';
+import {
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
+  PutObjectCommand,
+  S3Client,
+  S3ClientConfig,
+} from '@aws-sdk/client-s3';
 import pLimit from 'p-limit';
 import querystring from 'querystring';
 import { UploadFileProvider, UploadFile } from './types';
 
 const isEmpty = (obj: any) => Object.keys(obj).length === 0 && obj.constructor === Object;
 
-export interface S3ProviderOptions extends AWS.S3.ClientConfiguration {
+export interface S3ProviderOptions extends S3ClientConfig {
   bucket: string;
   /** Default 3 */
   listMetaDataConcurrency?: number;
@@ -13,7 +21,7 @@ export interface S3ProviderOptions extends AWS.S3.ClientConfiguration {
 
 export default function uploadFileFactory(providerOptions: S3ProviderOptions): UploadFileProvider {
   const { bucket, listMetaDataConcurrency, ...otherProviderOptions } = providerOptions;
-  const myS3 = !isEmpty(otherProviderOptions) ? new AWS.S3(otherProviderOptions) : new AWS.S3();
+  const myS3 = !isEmpty(otherProviderOptions) ? new S3Client(otherProviderOptions) : new S3Client({});
 
   if (!bucket) {
     throw new Error('bucket is required for providerOptions');
@@ -33,8 +41,8 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
     }) => {
       // Upload the stream
       return new Promise((resolve, reject): void => {
-        myS3.upload(
-          {
+        myS3.send(
+          new PutObjectCommand({
             Body: source,
             Bucket: bucket,
             Key: destFileName,
@@ -45,7 +53,7 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
             // ContentMD5: Buffer.from(md5Hash, 'hex').toString('base64'), // doesn't work for multipart uploads
             CacheControl: cacheControl,
             ContentEncoding: contentEncoding,
-          },
+          }),
           (err): void => {
             if (err) {
               reject(err);
@@ -58,11 +66,13 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
     },
     list: async (prefix: string, includeMetadata: boolean) => {
       const results: UploadFile[] = [];
-      let s3result: AWS.S3.ListObjectsV2Output | undefined;
+      let s3result: ListObjectsV2CommandOutput | undefined;
       do {
         const lastToken = s3result ? s3result.NextContinuationToken : undefined;
         // eslint-disable-next-line no-await-in-loop
-        s3result = await myS3.listObjectsV2({ Bucket: bucket, Prefix: prefix, ContinuationToken: lastToken }).promise();
+        s3result = await myS3.send(
+          new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: lastToken })
+        );
         if (!s3result.Contents) {
           break;
         }
@@ -79,7 +89,7 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
         await Promise.all(
           results.map((x) =>
             limit(async () => {
-              const response = await myS3.headObject({ Bucket: bucket, Key: x.name }).promise();
+              const response = await myS3.send(new HeadObjectCommand({ Bucket: bucket, Key: x.name }));
               x.metadata = response.Metadata || {};
             })
           )
@@ -89,7 +99,7 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
       return results;
     },
     delete: async (key: string) => {
-      await myS3.deleteObject({ Bucket: bucket, Key: key }).promise();
+      await myS3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
   };
 }

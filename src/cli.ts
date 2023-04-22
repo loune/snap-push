@@ -64,8 +64,8 @@ const logger = {
   },
 };
 
-yargs // eslint-disable-line
-  .command(
+yargs // eslint-disable-line no-unused-expressions
+  .command<Argv>(
     '* <source> <destination>',
     'Push files to the remote file service.',
     (myargs) => {
@@ -76,7 +76,7 @@ yargs // eslint-disable-line
         describe: 'destination bucket',
       });
     },
-    (argv: Argv) => {
+    (argv) => {
       const startTime = Date.now();
       // act
       push({
