@@ -55,7 +55,6 @@ $ cd dist && ../node_modules/.bin/snap-push './**/*' s3://example-bucket --publi
 ### Library code
 
 ```js
-const AWS = require('aws-sdk');
 const push = require('snap-push').default;
 const s3FileProvider = require('snap-push/dist/s3').default;
 

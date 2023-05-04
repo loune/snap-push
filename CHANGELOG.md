@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2023-05-04
+
+### Changed
+
+- Uses AWS SDK v3 (`@aws-sdk/client-s3`) instead of `aws-sdk`.
+- Requires `@aws-sdk/client-s3` and Node.js 14+.
+
 ## [4.1.0] - 2021-06-10
 
 ### Added
