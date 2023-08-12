@@ -1,13 +1,13 @@
 /* eslint-disable max-classes-per-file */
-import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/storage-blob';
-import fg from 'fast-glob';
-import { Storage } from '@google-cloud/storage';
 import { Writable } from 'stream';
 import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import crypto from 'crypto';
 import zlib from 'zlib';
+import { Storage } from '@google-cloud/storage';
+import fg from 'fast-glob';
+import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/storage-blob';
+import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import push, { pathTrimStart } from './push';
 import s3FileProvider from './s3';
 import azureFileProvider from './azure';

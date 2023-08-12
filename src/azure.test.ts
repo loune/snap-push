@@ -1,6 +1,6 @@
-import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
 import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
+import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
 import uploadFileFactory, { AzureProviderOptions } from './azure';
 
 jest.setTimeout(20000);

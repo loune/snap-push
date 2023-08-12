@@ -1,3 +1,4 @@
+import querystring from 'querystring';
 import {
   DeleteObjectCommand,
   HeadObjectCommand,
@@ -8,7 +9,6 @@ import {
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import pLimit from 'p-limit';
-import querystring from 'querystring';
 import { UploadFileProvider, UploadFile } from './types';
 
 const isEmpty = (obj: any) => Object.keys(obj).length === 0 && obj.constructor === Object;

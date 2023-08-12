@@ -40,10 +40,10 @@
   },
   "homepage": "https://github.com/loune/snap-push#readme",
   "peerDependencies": {
-    "@aws-sdk/client-s3": "^3.317.0",
-    "@aws-sdk/lib-storage": "^3.317.0",
-    "@azure/storage-blob": "^12.1.1",
-    "@google-cloud/storage": "^6.9.5"
+    "@aws-sdk/client-s3": "^3.388.0",
+    "@aws-sdk/lib-storage": "^3.388.0",
+    "@azure/storage-blob": "^12.15.0",
+    "@google-cloud/storage": "^7.0.1"
   },
   "peerDependenciesMeta": {
     "@azure/storage-blob": {
@@ -60,16 +60,16 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.317.0",
-    "@aws-sdk/lib-storage": "^3.317.0",
-    "@azure/storage-blob": "^12.1.1",
-    "@google-cloud/storage": "^6.9.5",
+    "@aws-sdk/client-s3": "^3.388.0",
+    "@aws-sdk/lib-storage": "^3.388.0",
+    "@azure/storage-blob": "^12.15.0",
+    "@google-cloud/storage": "^7.0.1",
     "@types/jest": "^29.5.1",
     "@types/mime": "^3.0.1",
     "@types/node": "^14",
     "@typescript-eslint/eslint-plugin": "^5.3.0",
     "@typescript-eslint/parser": "^5.3.0",
-    "azurite": "^3.10.0",
+    "azurite": "^3.25.1",
     "env-cmd": "^10.1.0",
     "eslint": "^8.2.0",
     "eslint-config-airbnb": "^18.2.0",

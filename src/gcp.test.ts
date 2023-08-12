@@ -1,5 +1,5 @@
-import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
+import { Storage } from '@google-cloud/storage';
 import uploadFileFactory from './gcp';
 
 const testBucketName = 'snap-push-test';
@@ -21,7 +21,7 @@ test('gcp uploadFile', async () => {
     md5Hash: '182d400ab46da21d85a8f571ce2e605c',
     metadata: { test: 'gcp' },
   });
-  const list = await uploadFile.list(testKeyName, false);
+  const list = await uploadFile.list(testKeyName, true);
 
   // assert
   const storage = new Storage();

@@ -1,6 +1,6 @@
+import fs from 'fs';
 import mime from 'mime';
 import Mime from 'mime/Mime';
-import fs from 'fs';
 
 async function readChars(filename: string, numOfChars: number): Promise<string> {
   const buf: (Buffer | string)[] = [];

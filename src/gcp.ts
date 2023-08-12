@@ -41,9 +41,9 @@ export default function uploadFileFactory(providerOptions: GcpProviderOptions): 
       const [files] = await storageBucket.getFiles({ prefix, autoPaginate: true });
       return files.map((f) => ({
         name: f.name,
-        md5: Buffer.from(f.metadata.md5Hash, 'base64').toString('hex'),
+        md5: f.metadata.md5Hash ? Buffer.from(f.metadata.md5Hash, 'base64').toString('hex') : undefined,
         size: Number(f.metadata.size),
-        metadata: f.metadata.metadata,
+        metadata: includeMetadata ? f.metadata.metadata ?? {} : {},
       }));
     },
     delete: async (key: string) => {
