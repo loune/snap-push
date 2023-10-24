@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import yargs from 'yargs';
-import push from './push';
+import push from './push.js';
 
 interface Argv {
   source: string;

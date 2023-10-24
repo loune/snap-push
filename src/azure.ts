@@ -1,5 +1,5 @@
 import { BlobServiceClient } from '@azure/storage-blob';
-import { UploadFileProvider, UploadFile } from './types';
+import { UploadFileProvider, UploadFile } from './types.js';
 
 export interface AzureProviderOptions {
   credential: any;

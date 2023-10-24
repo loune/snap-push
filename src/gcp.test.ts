@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { Storage } from '@google-cloud/storage';
-import uploadFileFactory from './gcp';
+import uploadFileFactory from './gcp.js';
 
 const testBucketName = 'snap-push-test';
 
@@ -18,7 +18,7 @@ test('gcp uploadFile', async () => {
     source: fs.createReadStream(testFile, { highWaterMark: 4 * 1024 * 1024 }),
     destFileName: testKeyName,
     contentType: 'text/plain',
-    md5Hash: '182d400ab46da21d85a8f571ce2e605c',
+    md5Hash: 'e16b86ba6de4a2aab341704ff3ba0072',
     metadata: { test: 'gcp' },
   });
   const list = await uploadFile.list(testKeyName, true);
@@ -34,7 +34,7 @@ test('gcp uploadFile', async () => {
   expect(data.toString()).toBe(fs.readFileSync(testFile).toString());
 
   expect(list).toEqual([
-    { name: testKeyName, md5: '182d400ab46da21d85a8f571ce2e605c', size: fileStat.size, metadata: { test: 'gcp' } },
+    { name: testKeyName, md5: 'e16b86ba6de4a2aab341704ff3ba0072', size: fileStat.size, metadata: { test: 'gcp' } },
   ]);
 
   await uploadFile.delete(testKeyName);

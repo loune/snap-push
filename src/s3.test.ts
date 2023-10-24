@@ -12,7 +12,7 @@ if (!testBucketName) {
 
 test('s3 uploadFile', async () => {
   const testFile = 'jest.config.js';
-  const hash = '182d400ab46da21d85a8f571ce2e605c';
+  const hash = 'e16b86ba6de4a2aab341704ff3ba0072';
   const testKeyName = '__s3.test';
   const options = { bucket: testBucketName };
   const uploadFile = uploadFileFactory(options);

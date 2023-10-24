@@ -1,6 +1,6 @@
 import fs from 'fs';
 import Mime from 'mime/Mime';
-import getFileMimeType from './contentType';
+import getFileMimeType from './contentType.js';
 
 jest.setTimeout(10000);
 

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { spawn, spawnSync } from 'child_process';
 import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
-import uploadFileFactory, { AzureProviderOptions } from './azure';
+import uploadFileFactory, { AzureProviderOptions } from './azure.js';
 
 jest.setTimeout(20000);
 
@@ -65,7 +65,7 @@ test('azure uploadFile', async () => {
       source: fs.createReadStream(testFile),
       destFileName: testKeyName,
       contentType: 'text/plain',
-      md5Hash: '182d400ab46da21d85a8f571ce2e605c',
+      md5Hash: 'e16b86ba6de4a2aab341704ff3ba0072',
       metadata: { test: 'azure' },
     });
     const list = await uploadFile.list(testKeyName, true);
@@ -92,7 +92,7 @@ test('azure uploadFile', async () => {
     });
     expect(streamString).toBe(fs.readFileSync(testFile).toString());
     expect(list).toEqual([
-      { name: testKeyName, md5: '182d400ab46da21d85a8f571ce2e605c', size: fileStat.size, metadata: { test: 'azure' } },
+      { name: testKeyName, md5: 'e16b86ba6de4a2aab341704ff3ba0072', size: fileStat.size, metadata: { test: 'azure' } },
     ]);
 
     await uploadFile.delete(testKeyName);

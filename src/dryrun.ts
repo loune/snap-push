@@ -1,4 +1,4 @@
-import { UploadFileProvider, AbstractLogger } from './types';
+import { UploadFileProvider, AbstractLogger } from './types.js';
 
 export interface DryRunOptions {
   realProvider: UploadFileProvider;

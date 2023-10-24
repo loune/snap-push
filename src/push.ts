@@ -5,9 +5,9 @@ import zlib from 'zlib';
 import { Readable } from 'stream';
 import pLimit from 'p-limit';
 import glob from 'fast-glob';
-import { UploadFileProvider, UploadFile, AbstractLogger } from './types';
-import getFileMimeType from './contentType';
-import dryRunProvider from './dryrun';
+import { UploadFileProvider, UploadFile, AbstractLogger } from './types.js';
+import getFileMimeType from './contentType.js';
+import dryRunProvider from './dryrun.js';
 
 const BUFFER_SIZE = 4 * 1024 * 1024;
 

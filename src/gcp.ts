@@ -1,5 +1,5 @@
 import { Storage, StorageOptions } from '@google-cloud/storage';
-import { UploadFileProvider } from './types';
+import { UploadFileProvider } from './types.js';
 
 export interface GcpProviderOptions extends StorageOptions {
   bucket: string;

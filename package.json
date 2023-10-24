@@ -2,22 +2,41 @@
   "name": "snap-push",
   "version": "5.0.0",
   "description": "Deliver static website files to Amazon S3, Azure or Google Cloud.",
-  "main": "dist/push.js",
+  "type": "module",
+  "main": "./dist-cjs/push.js",
+  "module": "./dist-esm/push.js",
+  "types": "./dist-types/push.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist-esm/push.js",
+      "require": "./dist-cjs/push.js",
+      "default": "./dist-esm/push.js",
+      "types": "./dist-types/push.d.ts"
+    },
+    "./*": {
+      "import": "./dist-esm/*.js",
+      "require": "./dist-cjs/*.js",
+      "default": "./dist-esm/*.js",
+      "types": "./dist-types/*.d.ts"
+    }
+  },
   "engines": {
-    "node": ">=14"
+    "node": ">=16.10"
   },
   "bin": {
-    "snap-push": "dist/cli.js"
+    "snap-push": "dist-esm/cli.js"
   },
   "files": [
-    "dist",
+    "dist-cjs",
+    "dist-esm",
+    "dist-types",
     "README.md",
     "CHANGELOG.md"
   ],
   "scripts": {
     "test": "yarn lint && yarn env-cmd --silent jest --detectOpenHandles",
     "lint": "npx eslint --ext .js,.ts src",
-    "build": "rimraf dist && mkdir dist && yarn tsc && chmod +x dist/cli.js",
+    "build": "rimraf dist-esm dist-cjs dist-types && yarn tsc -b ./tsconfig.esm.json ./tsconfig.cjs.json ./tsconfig.types.json && chmod +x dist-esm/cli.js && echo '{\"type\": \"commonjs\"}' > ./dist-cjs/package.json",
     "prepublish": "yarn build"
   },
   "repository": {

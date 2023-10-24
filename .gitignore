@@ -1,6 +1,9 @@
 node_modules/**/*
 npm-debug.*
 dist
+dist-esm
+dist-cjs
+dist-types
 gcp.json
 azurite
 azurite2

@@ -52,12 +52,25 @@ yarn add snap-push @google-cloud/storage
 $ cd dist && ../node_modules/.bin/snap-push './**/*' s3://example-bucket --public
 ```
 
-### Library code
+### Using the Library
+
+CommonJS require
 
 ```js
 const push = require('snap-push').default;
-const s3FileProvider = require('snap-push/dist/s3').default;
+const s3FileProvider = require('snap-push/s3').default;
+```
 
+ES Modules import
+
+```js
+import push from 'snap-push';
+import s3FileProvider from 'snap-push/s3';
+```
+
+Code
+
+```js
 const providerOptions = {
   bucket: 'example-bucket',
   region: 'ap-southeast-2',

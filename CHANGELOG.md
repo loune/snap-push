@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2023-10-24
+
+### Changed
+
+- Now supports both ES Modules and CommonJS.
+- Requires Node.js 16+.
+
 ## [5.0.0] - 2023-05-04
 
 ### Changed
