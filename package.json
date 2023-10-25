@@ -104,7 +104,6 @@
   },
   "dependencies": {
     "fast-glob": "^3.2.4",
-    "mime": "^3.0.0",
     "p-limit": "^3.0.2",
     "yargs": "^17.2.1"
   }

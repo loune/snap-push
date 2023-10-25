@@ -32,3 +32,4 @@ jobs:
           AWS_REGION: ap-southeast-2
           S3_TEST_BUCKET: ${{ secrets.TEST_BUCKET }}
           GOOGLE_APPLICATION_CREDENTIALS: gcp.json
+          NODE_OPTIONS: --experimental-vm-modules
