@@ -65,3 +65,17 @@ test('content type xml', async () => {
 
   expect(type).toEqual('application/xml');
 });
+
+test('content type js', async () => {
+  const filename = `test-custom-${Date.now()}.js`;
+  const type = await getFileMimeType(filename);
+
+  expect(type).toEqual('text/javascript');
+});
+
+test('content type with relative path', async () => {
+  const filename = `../../test-custom-${Date.now()}.mid`;
+  const type = await getFileMimeType(filename);
+
+  expect(type).toEqual('audio/midi');
+});
