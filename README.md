@@ -52,7 +52,7 @@ yarn add snap-push @google-cloud/storage
 $ cd dist && ../node_modules/.bin/snap-push './**/*' s3://example-bucket --public
 ```
 
-### Using the Library
+### Using the Library with S3
 
 CommonJS require
 
@@ -78,7 +78,123 @@ const providerOptions = {
 
 (async () => {
   const result = await push({
-    currentWorkingDirectory: 'dist',
+    currentWorkingDirectory: 'directory-to-upload',
+    files: './**/*',
+    makePublic: true,
+    provider: s3FileProvider(providerOptions),
+  });
+
+  console.log(result);
+})();
+```
+
+### Using the Library with Azure
+
+CommonJS require
+
+```js
+const push = require('snap-push').default;
+const azureFileProvider = require('snap-push/azure').default;
+```
+
+ES Modules import
+
+```js
+import push from 'snap-push';
+import azureFileProvider from 'snap-push/azure';
+```
+
+Code
+
+```typescript
+const providerOptions: AzureProviderOptions = {
+  credential: new StorageSharedKeyCredential(
+    'my-account-name',
+    'my-account-key'
+  ),
+  serviceUrl: `https://myaccount.blob.core.windows.net/`,
+  containerName: `my-test-container`,
+};
+
+(async () => {
+  const result = await push({
+    currentWorkingDirectory: 'directory-to-upload',
+    files: './**/*',
+    makePublic: true,
+    provider: azureFileProvider(providerOptions),
+  });
+
+  console.log(result);
+})();
+```
+
+### Using the Library with Google Cloud Storage
+
+CommonJS require
+
+```js
+const push = require('snap-push').default;
+const gcpFileProvider = require('snap-push/gcp').default;
+```
+
+ES Modules import
+
+```js
+import push from 'snap-push';
+import gcpFileProvider from 'snap-push/gcp';
+```
+
+Code
+
+```js
+const providerOptions = {
+  bucket: 'example-bucket'
+};
+
+(async () => {
+  const result = await push({
+    currentWorkingDirectory: 'directory-to-upload',
+    files: './**/*',
+    makePublic: true,
+    provider: gcpFileProvider(providerOptions),
+  });
+
+  console.log(result);
+})();
+```
+
+### Using the Library with Cloudflare R2
+
+CommonJS require
+
+```js
+const push = require('snap-push').default;
+const s3FileProvider = require('snap-push/s3').default;
+```
+
+ES Modules import
+
+```js
+import push from 'snap-push';
+import s3FileProvider from 'snap-push/s3';
+```
+
+Code
+
+```js
+const providerOptions = {
+  bucket: 'example-bucket',
+  region: 'auto',
+  endpoint: `https://my-region-endpoint.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: 'my-account-key',
+    secretAccessKey: 'my-secret-access-key',
+  },
+};
+
+(async () => {
+  const result = await push({
+    currentWorkingDirectory: 'directory-to-upload',
     files: './**/*',
     makePublic: true,
     provider: s3FileProvider(providerOptions),
