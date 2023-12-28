@@ -34,7 +34,9 @@ test('azure uploadFile', async () => {
     });
   });
 
-  await new Promise((r) => setTimeout(r, 4000));
+  await new Promise((r) => {
+    setTimeout(r, 4000);
+  });
 
   try {
     const testFile = 'jest.config.js';
@@ -102,7 +104,9 @@ test('azure uploadFile', async () => {
 
     await containerClient.delete();
   } finally {
-    spawnSync('kill', ['-9', azurite.pid.toString()]);
+    if (azurite.pid) {
+      spawnSync('kill', ['-9', azurite.pid.toString()]);
+    }
     await azuriteEnd;
   }
 });

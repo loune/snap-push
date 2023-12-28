@@ -7,13 +7,17 @@ test('content type html', async () => {
   const filename = `test-html-${Date.now()}`;
   const ws = fs.createWriteStream(filename, { encoding: 'utf8', flags: 'as' });
   ws.write('<!DOCTYPE html>\n<html></html>');
-  await new Promise((res) => ws.close(res));
+  await new Promise((res) => {
+    ws.close(res);
+  });
 
   const type = await getFileMimeType(filename);
 
   expect(type).toEqual('text/html');
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 1000);
+  });
   fs.unlinkSync(filename);
 });
 
@@ -21,13 +25,17 @@ test('content type not html', async () => {
   const filename = `test-nothtml-${Date.now()}`;
   const ws = fs.createWriteStream(filename, { encoding: 'utf8', flags: 'as' });
   ws.write('<!DOCTYsdfsdfsPE htmdsfdsfdsl>dfdsn<htmsadsfl></html>');
-  await new Promise((res) => ws.close(res));
+  await new Promise((res) => {
+    ws.close(res);
+  });
 
   const type = await getFileMimeType(filename);
 
   expect(type).toEqual(undefined);
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 1000);
+  });
   fs.unlinkSync(filename);
 });
 
@@ -35,13 +43,17 @@ test('content type txt', async () => {
   const filename = `test-text-${Date.now()}.txt`;
   const ws = fs.createWriteStream(filename, { encoding: 'utf8', flags: 'as' });
   ws.write('<!DOCTYPE html>\n<html></html>');
-  await new Promise((res) => ws.close(res));
+  await new Promise((res) => {
+    ws.close(res);
+  });
 
   const type = await getFileMimeType(filename);
 
   expect(type).toEqual('text/plain');
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 1000);
+  });
   fs.unlinkSync(filename);
 });
 

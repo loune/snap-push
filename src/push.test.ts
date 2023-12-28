@@ -543,7 +543,9 @@ test('push with azure', async () => {
     });
   });
 
-  await new Promise((r) => setTimeout(r, 4000));
+  await new Promise((r) => {
+    setTimeout(r, 4000);
+  });
 
   try {
     const prefix = `__snap-push-test${Date.now()}/`;
@@ -598,7 +600,9 @@ test('push with azure', async () => {
     // cleanup
     await containerClient.delete();
   } finally {
-    spawnSync('kill', ['-9', azurite.pid.toString()]);
+    if (azurite.pid) {
+      spawnSync('kill', ['-9', azurite.pid.toString()]);
+    }
     await azuriteEnd;
   }
 });
