@@ -8,3 +8,4 @@ gcp.json
 azurite
 azurite2
 .env
+**/node_modules
