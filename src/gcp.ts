@@ -43,7 +43,7 @@ export default function uploadFileFactory(providerOptions: GcpProviderOptions): 
         name: f.name,
         md5: f.metadata.md5Hash ? Buffer.from(f.metadata.md5Hash, 'base64').toString('hex') : undefined,
         size: Number(f.metadata.size),
-        metadata: includeMetadata ? f.metadata.metadata ?? {} : {},
+        metadata: includeMetadata ? (f.metadata.metadata ?? {}) : {},
       }));
     },
     delete: async (key: string) => {

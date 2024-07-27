@@ -18,7 +18,7 @@
 
 ## Installation
 
-### For Amazon S3
+### For Amazon S3 (or compatible services such as Cloudflare R2, MinIO)
 
 ```bash
 yarn add snap-push @aws-sdk/client-s3 @aws-sdk/lib-storage

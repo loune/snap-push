@@ -11,7 +11,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import pLimit from 'p-limit';
 import { UploadFileProvider, UploadFile } from './types.js';
 
-const isEmpty = (obj: any) => Object.keys(obj).length === 0 && obj.constructor === Object;
+const isEmpty = (obj: Record<string, unknown>) => Object.keys(obj).length === 0 && obj.constructor === Object;
 
 export interface S3ProviderOptions extends S3ClientConfig {
   bucket: string;
@@ -32,7 +32,6 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
       source,
       destFileName,
       contentType,
-      md5Hash,
       metadata,
       tags,
       cacheControl,
@@ -63,30 +62,31 @@ export default function uploadFileFactory(providerOptions: S3ProviderOptions): U
       let s3result: ListObjectsV2CommandOutput | undefined;
       do {
         const lastToken = s3result ? s3result.NextContinuationToken : undefined;
-        // eslint-disable-next-line no-await-in-loop
+
         s3result = await myS3.send(
-          new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: lastToken })
+          new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: lastToken }),
         );
         if (!s3result.Contents) {
           break;
         }
-        s3result.Contents.map((x) => ({
-          name: x.Key || '',
-          md5: x.ETag?.replace(/"/g, ''),
-          size: x.Size || 0,
+        s3result.Contents.map((blob) => ({
+          name: blob.Key ?? '',
+          md5: blob.ETag?.replace(/"/g, ''),
+          size: blob.Size ?? 0,
           metadata: {},
         })).forEach((x) => results.push(x));
       } while (s3result.IsTruncated);
 
       if (includeMetadata) {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         const limit = pLimit(listMetaDataConcurrency || 3);
         await Promise.all(
           results.map((x) =>
             limit(async () => {
               const response = await myS3.send(new HeadObjectCommand({ Bucket: bucket, Key: x.name }));
-              x.metadata = response.Metadata || {};
-            })
-          )
+              x.metadata = response.Metadata ?? {};
+            }),
+          ),
         );
       }
 

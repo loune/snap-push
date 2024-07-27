@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Upgrade to Node.js 20.16.
+- Upgrade ESLint 9
+
 ## [6.1.1] - 2023-12-28
 
 ### Fixed

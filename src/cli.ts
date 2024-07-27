@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import yargs from 'yargs';
 import push from './push.js';
+import { UploadFileProvider } from './types.js';
 
 interface Argv {
   source: string;
@@ -13,39 +14,42 @@ interface Argv {
   accountKey?: string;
 }
 
-function getProvider(argv: Argv) {
-  const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-.]+)\/*/.exec(argv.destination) || [null, null, null];
+type UploadFileProviderConstructor = (options: unknown) => UploadFileProvider;
+
+function getProvider(argv: Argv): UploadFileProvider {
+  const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-.]+)\/*/.exec(argv.destination) ?? [null, null, null];
 
   if (proto === null) {
     throw new Error(
-      `destination ${argv.destination} is not valid. It should be in the format of <provider>://<bucket> e.g. s3://my-bucket-name`
+      `destination ${argv.destination} is not valid. It should be in the format of <provider>://<bucket> e.g. s3://my-bucket-name`,
     );
   }
 
   if (proto === 's3') {
     const providerOptions = { bucket, listMetaDataConcurrency: argv.concurrency };
-    // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
-    const s3FileProvider = require('./s3').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
+    const s3FileProvider = require('./s3').default as UploadFileProviderConstructor;
     return s3FileProvider(providerOptions);
   }
 
   if (proto === 'gcp') {
     const providerOptions = { bucket };
-    // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
-    const gcpProvider = require('./gcp').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
+    const gcpProvider = require('./gcp').default as UploadFileProviderConstructor;
     return gcpProvider(providerOptions);
   }
 
   if (proto === 'azure') {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
     const { SharedKeyCredential } = require('@azure/storage-blob');
     const providerOptions = {
       account: argv.accountName,
       containerName: bucket,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       credential: argv.accountName ? new SharedKeyCredential(argv.accountName, argv.accountKey) : undefined,
     };
-    // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
-    const gcpProvider = require('./azure').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
+    const gcpProvider = require('./azure').default as UploadFileProviderConstructor;
     return gcpProvider(providerOptions);
   }
 
@@ -53,18 +57,18 @@ function getProvider(argv: Argv) {
 }
 
 const logger = {
-  info(...args: any) {
+  info(...args: unknown[]) {
     console.log(...args);
   },
-  error(...args: any) {
+  error(...args: unknown[]) {
     console.error(...args);
   },
-  warn(...args: any) {
+  warn(...args: unknown[]) {
     console.warn(...args);
   },
 };
 
-yargs // eslint-disable-line no-unused-expressions
+const result = yargs
   .command<Argv>(
     '* <source> <destination>',
     'Push files to the remote file service.',
@@ -92,13 +96,13 @@ yargs // eslint-disable-line no-unused-expressions
           logger.info(
             `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
               result.uploadedKeys.length
-            }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`
+            }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`,
           );
         })
         .catch((error) => {
           logger.error(`Error: ${error}`);
         });
-    }
+    },
   )
   .option('concurrency', {
     alias: 'c',
@@ -119,3 +123,7 @@ yargs // eslint-disable-line no-unused-expressions
   .option('force', {
     default: false,
   }).argv;
+
+if (result instanceof Promise) {
+  result.catch((err: any) => logger.error(err));
+}

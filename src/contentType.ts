@@ -121,7 +121,7 @@ async function readChars(filename: string, numOfChars: number): Promise<string> 
 
 export default async function getFileMimeType(
   filename: string,
-  customMimeTypes?: Record<string, string[]> | undefined
+  customMimeTypes?: Record<string, string[]> | undefined,
 ): Promise<string | undefined> {
   const extension = filename.substring(filename.lastIndexOf('.') + 1);
 

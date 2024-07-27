@@ -46,7 +46,7 @@ test('azure uploadFile', async () => {
     const options: AzureProviderOptions = {
       credential: new StorageSharedKeyCredential(
         accountName,
-        'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
+        'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==',
       ),
       serviceUrl: `http://127.0.0.1:39858/${accountName}`,
       containerName: `snappushtest${new Date().getTime()}`,
@@ -82,7 +82,7 @@ test('azure uploadFile', async () => {
     const streamString = await new Promise((resolve, reject) => {
       const buffers: Buffer[] = [];
       expect(downloadBlockBlobResponse.readableStreamBody).toBeTruthy();
-      downloadBlockBlobResponse.readableStreamBody?.on('data', (data) => {
+      downloadBlockBlobResponse.readableStreamBody?.on('data', (data: Buffer) => {
         buffers.push(data);
       });
       downloadBlockBlobResponse.readableStreamBody?.on('end', () => {

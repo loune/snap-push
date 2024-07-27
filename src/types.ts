@@ -4,7 +4,7 @@ export interface UploadFile {
   name: string;
   md5?: string;
   size: number;
-  metadata: { [key: string]: string };
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface UploadArgs {
@@ -14,13 +14,12 @@ export interface UploadArgs {
   contentLength: number;
   contentEncoding?: string;
   md5Hash: string;
-  metadata?: { [key: string]: string };
-  tags?: { [key: string]: string };
+  metadata?: Record<string, string>;
+  tags?: Record<string, string>;
   cacheControl?: string;
   makePublic?: boolean;
 }
 
-// eslint-disable-next-line import/prefer-default-export
 export interface UploadFileProvider {
   upload: (args: UploadArgs) => Promise<void>;
   list: (prefix: string, includeMetadata: boolean) => Promise<UploadFile[]>;

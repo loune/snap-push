@@ -32,11 +32,11 @@ export interface PushOptions {
   /** Glob pattern for files */
   files: string[];
   /** Extra metadata to include with each file */
-  metadata?: { [key: string]: string } | ((filename: string) => { [key: string]: string });
+  metadata?: Record<string, string> | ((filename: string) => Record<string, string>);
   /** Object tags to include (AWS and Azure)  */
-  tags?: { [key: string]: string } | ((filename: string) => { [key: string]: string });
+  tags?: Record<string, string> | ((filename: string) => Record<string, string>);
   /** Mapping of custom content type to an array of file extensions */
-  mimeTypes?: { [contentType: string]: string[] };
+  mimeTypes?: Record<string, string[]>;
   /** Maximum number of concurrent upload and list API requests */
   concurrency?: number;
   /** A path prefix to prepend to the upload file name */
@@ -65,7 +65,7 @@ export interface PushOptions {
     | ((
         fileName: string,
         fileSize: number,
-        mimeType: string
+        mimeType: string,
       ) => { destFileName: string; encoding: SupportedContentEncoding }[] | undefined);
   /** If dryRun, then pretend to upload but don't actually do it. */
   dryRun?: boolean;
@@ -89,7 +89,7 @@ export interface PushResult {
   errorKeys: string[];
 }
 
-const encodingExtensionsMap: { [encoding: string]: string } = {
+const encodingExtensionsMap: Record<string, string> = {
   raw: '',
   gzip: '.gz',
   br: '.br',
@@ -102,7 +102,7 @@ async function getMD5(fileName: string): Promise<string> {
     const stream = fs.createReadStream(fileName, { highWaterMark: BUFFER_SIZE });
     stream.on('end', () => {
       md5.end();
-      resolve(md5.read());
+      resolve(md5.read() as string);
     });
     stream.on('error', (err) => {
       reject(err);
@@ -151,7 +151,7 @@ function getFileEncodings(
   options: EncodingOptions | undefined,
   fileName: string,
   fileSize: number,
-  fileMime: string
+  fileMime: string,
 ): SupportedContentEncoding[] {
   if (!options) {
     return ['raw'];
@@ -164,7 +164,7 @@ function getFileEncodings(
   let shouldCompress = false;
   if (options.fileExtensions) {
     shouldCompress = options.fileExtensions.some(
-      (ext) => (ext[0] === '.' && fileName.endsWith(ext)) || fileName.endsWith(`.${ext}`)
+      (ext) => (ext.startsWith('.') && fileName.endsWith(ext)) || fileName.endsWith(`.${ext}`),
     );
   }
 
@@ -187,7 +187,7 @@ function getFileEncodings(
 
 function getFileEncodingKeys(
   fileName: string,
-  encodings: SupportedContentEncoding[]
+  encodings: SupportedContentEncoding[],
 ): { destFileName: string; encoding: SupportedContentEncoding }[] {
   const zippedFiles = encodings.map((encoding) => ({
     destFileName: `${fileName}${encodingExtensionsMap[encoding]}`,
@@ -233,6 +233,7 @@ export default async function push({
   logger = { info() {}, warn() {}, error() {} }, // eslint-disable-line @typescript-eslint/no-empty-function
 }: PushOptions): Promise<PushResult> {
   const uploadFileProvider = dryRun ? dryRunProvider({ logger, realProvider: provider }) : provider;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const limit = pLimit(concurrency || 1);
   const filesFromGlob = await glob(files, { ...(currentWorkingDirectory ? { cwd: currentWorkingDirectory } : {}) });
   const uploadedFiles: string[] = [];
@@ -259,8 +260,8 @@ export default async function push({
   if (uploadNewFilesFirst) {
     // sort new files to be uploaded first
     filesFromGlob.sort((a, b) => {
-      const keyAExists = existingFilesMap.get(`${destPathPrefix}${pathTrimStart(a as string)}`);
-      const keyBExists = existingFilesMap.get(`${destPathPrefix}${pathTrimStart(b as string)}`);
+      const keyAExists = existingFilesMap.get(`${destPathPrefix}${pathTrimStart(a)}`);
+      const keyBExists = existingFilesMap.get(`${destPathPrefix}${pathTrimStart(b)}`);
       if (keyAExists && !keyBExists) {
         return -1;
       }
@@ -289,7 +290,7 @@ export default async function push({
         }
 
         const localFileName = currentWorkingDirectory ? path.join(currentWorkingDirectory, fileName) : fileName;
-        const contentType = (await getFileMimeType(localFileName, mimeTypes)) || defaultContentType;
+        const contentType = (await getFileMimeType(localFileName, mimeTypes)) ?? defaultContentType;
         const contentLength = await getSize(localFileName);
         const md5Hash = await getMD5(localFileName);
 
@@ -315,7 +316,7 @@ export default async function push({
           try {
             const stream = getSourceStream(localFileName, fileNameEnc.encoding);
             const contentEncoding = fileNameEnc.encoding === 'raw' ? undefined : fileNameEnc.encoding;
-            // eslint-disable-next-line no-await-in-loop
+
             await uploadFileProvider.upload({
               contentLength,
               source: stream,
@@ -330,15 +331,15 @@ export default async function push({
             });
             logger.info(`Uploaded ${fileNameEnc.destFileName} of type ${contentType} hash ${md5Hash}`);
             uploadedKeys.push(fileNameEnc.destFileName);
-          } catch (err) {
+          } catch (err: any) {
             logger.error(`Failed to upload ${fileNameEnc.destFileName}: ${err}`);
             errorKeys.push(fileNameEnc.destFileName);
           }
         }
 
         uploadedFiles.push(fileName);
-      })
-    )
+      }),
+    ),
   );
 
   const deletedKeys: string[] = [];
@@ -358,13 +359,13 @@ export default async function push({
               await uploadFileProvider.delete(file.name);
               logger.info(`Deleted ${file.name} as it no longer exists in source`);
               deletedKeys.push(file.name);
-            } catch (err) {
+            } catch (err: any) {
               logger.error(`Failed to delete ${file.name}: ${err}`);
               errorKeys.push(file.name);
             }
           }
-        })
-      )
+        }),
+      ),
     );
   }
 

@@ -10,14 +10,16 @@ export default function uploadFileFactory(providerOptions: DryRunOptions): Uploa
   const { realProvider, logger } = providerOptions;
 
   return {
-    upload: async ({ destFileName, contentType }) => {
+    upload: ({ destFileName, contentType }) => {
       logger.info(`Pretend upload: ${destFileName} (${contentType})`);
+      return Promise.resolve();
     },
-    list: async (prefix: string, includeMetadata: boolean) => {
+    list: (prefix: string, includeMetadata: boolean) => {
       return realProvider.list(prefix, includeMetadata);
     },
-    delete: async (key: string) => {
+    delete: (key: string) => {
       logger.info(`Pretend delete: ${key}`);
+      return Promise.resolve();
     },
   };
 }

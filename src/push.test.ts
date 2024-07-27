@@ -1,5 +1,4 @@
-/* eslint-disable max-classes-per-file */
-import { Writable } from 'stream';
+import { Writable, WritableOptions } from 'stream';
 import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -18,6 +17,10 @@ const s3TestBucketName = 'pouch-test';
 
 jest.setTimeout(60000);
 
+interface MockProvider extends UploadFileProvider {
+  files: UploadFile[];
+}
+
 class Md5LengthStream extends Writable {
   size = 0;
 
@@ -28,9 +31,9 @@ class Md5LengthStream extends Writable {
   decodedHash = '';
   contentDecoder?: (buffer: Buffer, callback: (err: Error | null, result: Buffer) => void) => void;
   buffer: Buffer[] = [];
-  enc: any = '';
+  enc: BufferEncoding | undefined;
 
-  constructor(opt?: any, contentEncoding?: string) {
+  constructor(opt?: WritableOptions, contentEncoding?: string) {
     super(opt);
 
     this.md5 = crypto.createHash('md5');
@@ -49,8 +52,7 @@ class Md5LengthStream extends Writable {
     }
   }
 
-  // eslint-disable-next-line no-underscore-dangle
-  _write(chunk: any, enc: any, callback: (err?: Error | null) => void) {
+  _write(chunk: Buffer, enc: BufferEncoding, callback: (err?: Error | null) => void) {
     // store chunk, then call cb when done
     this.size += chunk.length;
 
@@ -61,10 +63,9 @@ class Md5LengthStream extends Writable {
     this.buffer.push(chunk);
   }
 
-  // eslint-disable-next-line no-underscore-dangle
   finish(callback: (err?: Error | null) => void) {
     this.md5.end();
-    this.hash = this.md5.read();
+    this.hash = this.md5.read() as string;
 
     const content = Buffer.concat(this.buffer);
 
@@ -81,7 +82,7 @@ class Md5LengthStream extends Writable {
           }
           setImmediate(() => {
             this.decodedMd5.end();
-            this.decodedHash = this.decodedMd5.read();
+            this.decodedHash = this.decodedMd5.read() as string;
             callback();
           });
         });
@@ -108,7 +109,7 @@ function getMockProvider(initalFiles: UploadFile[], customUploadHook?: (args: Up
 
       const lstream = new Md5LengthStream(undefined, contentEncoding);
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         args.source.pipe(lstream, { end: true }).on('finish', () => {
           lstream.finish(() => {
             files.push({
@@ -122,21 +123,23 @@ function getMockProvider(initalFiles: UploadFile[], customUploadHook?: (args: Up
         });
       });
     },
-    async list(prefix, includeMetadata) {
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async list() {
       return files;
     },
+    // eslint-disable-next-line @typescript-eslint/require-await
     async delete(key) {
       files = files.filter((f) => f.name !== key);
     },
   };
 
-  (mockProvider as any).files = files;
+  (mockProvider as MockProvider).files = files;
 
   return mockProvider;
 }
 
-function findMockFile(provider: UploadFileProvider, filename: string): UploadFile {
-  return (provider as any).files.find((file: UploadFile) => file.name === filename);
+function findMockFile(provider: UploadFileProvider, filename: string): UploadFile | undefined {
+  return (provider as MockProvider).files.find((file: UploadFile) => file.name === filename);
 }
 
 class MockLogger implements AbstractLogger {
@@ -147,26 +150,23 @@ class MockLogger implements AbstractLogger {
     this.logToConsole = logToConsole;
   }
 
-  info(message: string, ...args: any[]) {
+  info(message: string, ...args: unknown[]) {
     this.logs.push(message);
     if (this.logToConsole) {
-      // eslint-disable-next-line no-console
       console.log(message, ...args);
     }
   }
 
-  warn(message: string, ...args: any[]) {
+  warn(message: string, ...args: unknown[]) {
     this.logs.push(message);
     if (this.logToConsole) {
-      // eslint-disable-next-line no-console
       console.warn(message, ...args);
     }
   }
 
-  error(message: string, ...args: any[]) {
+  error(message: string, ...args: unknown[]) {
     this.logs.push(message);
     if (this.logToConsole) {
-      // eslint-disable-next-line no-console
       console.error(message, ...args);
     }
   }
@@ -201,7 +201,7 @@ test('delete files that no longer exists including compressed versions because w
     initialFiles
       .filter((f) => f.name !== 'src/s3.ts')
       .map((f) => f.name)
-      .sort()
+      .sort(),
   );
 });
 
@@ -265,14 +265,14 @@ test('upload with compressed copies of certain files', async () => {
   // assert
   expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/cli.ts', 'src/s3.ts']));
   expect(result.uploadedKeys).toEqual(
-    expect.arrayContaining(['.gitignore.br', '.gitignore.gz', '.gitignore', 'src/cli.ts', 'src/s3.ts'])
+    expect.arrayContaining(['.gitignore.br', '.gitignore.gz', '.gitignore', 'src/cli.ts', 'src/s3.ts']),
   );
   expect(result.uploadedKeys).not.toEqual(expect.arrayContaining(['src/s3.ts.br', 'src/s3.ts.gz']));
 
-  const gitMd5 = findMockFile(provider, '.gitignore').md5;
-  expect(findMockFile(provider, '.gitignore.br').metadata.decodedHash).toEqual(gitMd5);
-  expect(findMockFile(provider, '.gitignore.gz').metadata.decodedHash).toEqual(gitMd5);
-  expect(findMockFile(provider, '.gitignore').metadata.hash).toEqual(gitMd5);
+  const gitMd5 = findMockFile(provider, '.gitignore')?.md5;
+  expect(findMockFile(provider, '.gitignore.br')?.metadata.decodedHash).toEqual(gitMd5);
+  expect(findMockFile(provider, '.gitignore.gz')?.metadata.decodedHash).toEqual(gitMd5);
+  expect(findMockFile(provider, '.gitignore')?.metadata.hash).toEqual(gitMd5);
 });
 
 test('upload with compressed copies of certain files determined with function', async () => {
@@ -284,7 +284,7 @@ test('upload with compressed copies of certain files determined with function', 
   const result = await push({
     files: pat,
     provider,
-    encoding: (fileName, fileSize, mimeType) =>
+    encoding: (fileName) =>
       fileName.includes('s3.ts')
         ? [
             { destFileName: `${fileName}.br`, encoding: 'br' },
@@ -298,9 +298,9 @@ test('upload with compressed copies of certain files determined with function', 
   expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/cli.ts', 'src/s3.ts.br', 'src/s3.ts']));
   expect(result.uploadedKeys).not.toEqual(expect.arrayContaining(['src/cli.ts.br', 'src/cli.ts.gz', 'src/s3.ts.gz']));
 
-  const mimeMd5 = findMockFile(provider, 'src/s3.ts').md5;
-  expect(findMockFile(provider, 'src/s3.ts.br').metadata.decodedHash).toEqual(mimeMd5);
-  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(mimeMd5);
+  const mimeMd5 = findMockFile(provider, 'src/s3.ts')?.md5;
+  expect(findMockFile(provider, 'src/s3.ts.br')?.metadata.decodedHash).toEqual(mimeMd5);
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.hash).toEqual(mimeMd5);
 });
 
 test('pretend to upload files to mock file provider with dryRun', async () => {
@@ -350,12 +350,12 @@ test('upload files with substituteFile to mock file provider', async () => {
   expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/cli.ts', 'src/azure.ts']));
   expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/cli.ts', 'src/s3.ts']));
 
-  expect(findMockFile(provider, 'src/cli.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/cli.ts' }));
-  expect(findMockFile(provider, 'src/s3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/azure.ts' }));
-  expect(findMockFile(provider, 'src/cli.ts').size).toEqual(fs.statSync('src/cli.ts').size);
-  expect(findMockFile(provider, 'src/s3.ts').size).toEqual(fs.statSync('src/azure.ts').size);
-  expect(findMockFile(provider, 'src/cli.ts').metadata.hash).toEqual(findMockFile(provider, 'src/cli.ts').md5);
-  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
+  expect(findMockFile(provider, 'src/cli.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/cli.ts' }));
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/azure.ts' }));
+  expect(findMockFile(provider, 'src/cli.ts')?.size).toEqual(fs.statSync('src/cli.ts').size);
+  expect(findMockFile(provider, 'src/s3.ts')?.size).toEqual(fs.statSync('src/azure.ts').size);
+  expect(findMockFile(provider, 'src/cli.ts')?.metadata.hash).toEqual(findMockFile(provider, 'src/cli.ts')?.md5);
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts')?.md5);
 });
 
 test('upload files with substituteFile to mock file provider on changed working directory', async () => {
@@ -378,12 +378,12 @@ test('upload files with substituteFile to mock file provider on changed working 
   expect(result.uploadedFiles).toEqual(expect.arrayContaining(['cli.ts', 'azure.ts']));
   expect(result.uploadedKeys).toEqual(expect.arrayContaining(['cli.ts', 's3.ts']));
 
-  expect(findMockFile(provider, 'cli.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'cli.ts' }));
-  expect(findMockFile(provider, 's3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'azure.ts' }));
-  expect(findMockFile(provider, 'cli.ts').size).toEqual(fs.statSync('src/cli.ts').size);
-  expect(findMockFile(provider, 's3.ts').size).toEqual(fs.statSync('src/azure.ts').size);
-  expect(findMockFile(provider, 'cli.ts').metadata.hash).toEqual(findMockFile(provider, 'cli.ts').md5);
-  expect(findMockFile(provider, 's3.ts').metadata.hash).toEqual(findMockFile(provider, 's3.ts').md5);
+  expect(findMockFile(provider, 'cli.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'cli.ts' }));
+  expect(findMockFile(provider, 's3.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'azure.ts' }));
+  expect(findMockFile(provider, 'cli.ts')?.size).toEqual(fs.statSync('src/cli.ts').size);
+  expect(findMockFile(provider, 's3.ts')?.size).toEqual(fs.statSync('src/azure.ts').size);
+  expect(findMockFile(provider, 'cli.ts')?.metadata.hash).toEqual(findMockFile(provider, 'cli.ts')?.md5);
+  expect(findMockFile(provider, 's3.ts')?.metadata.hash).toEqual(findMockFile(provider, 's3.ts')?.md5);
 });
 
 test('upload files error in mock file provider', async () => {
@@ -411,9 +411,9 @@ test('upload files error in mock file provider', async () => {
   expect(result.errorKeys).toEqual(expect.arrayContaining(['src/s3.ts']));
 
   expect(findMockFile(provider, 'src/s3.ts')).toBeUndefined();
-  expect(findMockFile(provider, 'src/cli.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/cli.ts' }));
-  expect(findMockFile(provider, 'src/cli.ts').size).toEqual(fs.statSync('src/cli.ts').size);
-  expect(findMockFile(provider, 'src/cli.ts').metadata.hash).toEqual(findMockFile(provider, 'src/cli.ts').md5);
+  expect(findMockFile(provider, 'src/cli.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/cli.ts' }));
+  expect(findMockFile(provider, 'src/cli.ts')?.size).toEqual(fs.statSync('src/cli.ts').size);
+  expect(findMockFile(provider, 'src/cli.ts')?.metadata.hash).toEqual(findMockFile(provider, 'src/cli.ts')?.md5);
 });
 
 test('upload files with ignoreFile', async () => {
@@ -436,9 +436,9 @@ test('upload files with ignoreFile', async () => {
   expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/s3.ts']));
 
   expect(findMockFile(provider, 'src/cli.ts')).toBeUndefined();
-  expect(findMockFile(provider, 'src/s3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
-  expect(findMockFile(provider, 'src/s3.ts').size).toEqual(fs.statSync('src/s3.ts').size);
-  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
+  expect(findMockFile(provider, 'src/s3.ts')?.size).toEqual(fs.statSync('src/s3.ts').size);
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts')?.md5);
 });
 
 test('upload files to mock file provider', async () => {
@@ -457,17 +457,17 @@ test('upload files to mock file provider', async () => {
   expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/cli.ts', 'src/s3.ts']));
   expect(result.uploadedKeys).toEqual(expect.arrayContaining(['src/cli.ts', 'src/s3.ts']));
 
-  expect(findMockFile(provider, 'src/cli.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/cli.ts' }));
-  expect(findMockFile(provider, 'src/s3.ts').metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
-  expect(findMockFile(provider, 'src/cli.ts').size).toEqual(fs.statSync('src/cli.ts').size);
-  expect(findMockFile(provider, 'src/s3.ts').size).toEqual(fs.statSync('src/s3.ts').size);
-  expect(findMockFile(provider, 'src/cli.ts').metadata.hash).toEqual(findMockFile(provider, 'src/cli.ts').md5);
-  expect(findMockFile(provider, 'src/s3.ts').metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts').md5);
+  expect(findMockFile(provider, 'src/cli.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/cli.ts' }));
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.tags).toEqual(JSON.stringify({ tagFN: 'src/s3.ts' }));
+  expect(findMockFile(provider, 'src/cli.ts')?.size).toEqual(fs.statSync('src/cli.ts').size);
+  expect(findMockFile(provider, 'src/s3.ts')?.size).toEqual(fs.statSync('src/s3.ts').size);
+  expect(findMockFile(provider, 'src/cli.ts')?.metadata.hash).toEqual(findMockFile(provider, 'src/cli.ts')?.md5);
+  expect(findMockFile(provider, 'src/s3.ts')?.metadata.hash).toEqual(findMockFile(provider, 'src/s3.ts')?.md5);
 });
 
 test('change working directory', async () => {
   const pat = ['./**/*'];
-  const filesFromPat = (await fg(pat, { cwd: 'src' })) as string[];
+  const filesFromPat = await fg(pat, { cwd: 'src' });
   const provider = getMockProvider([]);
 
   // act
@@ -481,7 +481,7 @@ test('push with s3', async () => {
   const prefix = `__snap-push-test${Date.now()}/`;
   const providerOptions = { bucket: s3TestBucketName };
   const pat = ['./src/**/*'];
-  const filesFromPat = (await fg(pat)) as string[];
+  const filesFromPat = await fg(pat);
 
   // act
   const result = await push({
@@ -504,7 +504,7 @@ test('push with s3', async () => {
   const s3 = new S3Client({});
   const s3result = await s3.send(new ListObjectsV2Command({ Bucket: s3TestBucketName, Prefix: prefix }));
   expect(s3result.Contents?.map((x) => x.Key).sort()).toEqual(
-    filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort()
+    filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort(),
   );
   expect(s3result.Contents?.map((x) => x.Key).sort()).toEqual(result.uploadedKeys.sort());
 
@@ -554,13 +554,13 @@ test('push with azure', async () => {
     const providerOptions = {
       credential: new StorageSharedKeyCredential(
         accountName,
-        'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
+        'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==',
       ),
       serviceUrl: `http://127.0.0.1:39878/${accountName}`,
       containerName: `snap-push-test-${new Date().getTime()}`,
     };
     const pat = ['./src/**/*'];
-    const filesFromPat = (await fg(pat)) as string[];
+    const filesFromPat = await fg(pat);
 
     // Create a container
     const blobServiceClient = new BlobServiceClient(providerOptions.serviceUrl, providerOptions.credential);
@@ -589,7 +589,6 @@ test('push with azure', async () => {
     const blobs: BlobItem[] = [];
     const listBlobsResponse = containerClient.listBlobsFlat();
 
-    // eslint-disable-next-line no-await-in-loop
     for await (const blob of listBlobsResponse) {
       blobs.push(blob);
     }
@@ -612,7 +611,7 @@ test('push with gcp', async () => {
   const prefix = `__snap-push-test${Date.now()}/`;
   const providerOptions = { bucket: gcpTestBucketName };
   const pat = ['./src/**/*'];
-  const filesFromPat = (await fg(pat)) as string[];
+  const filesFromPat = await fg(pat);
 
   // act
   const result = await push({
