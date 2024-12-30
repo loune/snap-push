@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import yargs from 'yargs';
+import yargs from 'yargs/yargs';
 import push from './push.js';
 import { UploadFileProvider } from './types.js';
 
@@ -16,7 +16,7 @@ interface Argv {
 
 type UploadFileProviderConstructor = (options: unknown) => UploadFileProvider;
 
-function getProvider(argv: Argv): UploadFileProvider {
+async function getProvider(argv: Argv): Promise<UploadFileProvider> {
   const [, proto, bucket] = /^([a-zA-Z0-9]+):\/\/([a-zA-Z0-9-.]+)\/*/.exec(argv.destination) ?? [null, null, null];
 
   if (proto === null) {
@@ -27,29 +27,26 @@ function getProvider(argv: Argv): UploadFileProvider {
 
   if (proto === 's3') {
     const providerOptions = { bucket, listMetaDataConcurrency: argv.concurrency };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-    const s3FileProvider = require('./s3').default as UploadFileProviderConstructor;
+    const s3FileProvider = (await import('./s3.js')).default as UploadFileProviderConstructor;
     return s3FileProvider(providerOptions);
   }
 
   if (proto === 'gcp') {
     const providerOptions = { bucket };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-    const gcpProvider = require('./gcp').default as UploadFileProviderConstructor;
+    const gcpProvider = (await import('./gcp.js')).default as UploadFileProviderConstructor;
     return gcpProvider(providerOptions);
   }
 
   if (proto === 'azure') {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
-    const { SharedKeyCredential } = require('@azure/storage-blob');
+    const { StorageSharedKeyCredential } = await import('@azure/storage-blob');
+    const { accountName, accountKey } = argv;
+
     const providerOptions = {
-      account: argv.accountName,
+      account: accountName,
       containerName: bucket,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-      credential: argv.accountName ? new SharedKeyCredential(argv.accountName, argv.accountKey) : undefined,
+      credential: accountName && accountKey ? new StorageSharedKeyCredential(accountName, accountKey) : undefined,
     };
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-    const gcpProvider = require('./azure').default as UploadFileProviderConstructor;
+    const gcpProvider = (await import('./azure.js')).default as UploadFileProviderConstructor;
     return gcpProvider(providerOptions);
   }
 
@@ -68,7 +65,8 @@ const logger = {
   },
 };
 
-const result = yargs
+const result = yargs(process.argv.slice(2))
+  .scriptName('snap-push')
   .command<Argv>(
     '* <source> <destination>',
     'Push files to the remote file service.',
@@ -80,28 +78,28 @@ const result = yargs
         describe: 'destination bucket',
       });
     },
-    (argv) => {
+    async (argv) => {
       const startTime = Date.now();
-      // act
-      push({
-        files: argv.source.split(','),
-        provider: getProvider(argv),
-        destPathPrefix: argv.prefix,
-        logger,
-        concurrency: argv.concurrency,
-        makePublic: argv.public,
-        onlyUploadChanges: !argv.force,
-      })
-        .then((result) => {
-          logger.info(
-            `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
-              result.uploadedKeys.length
-            }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`,
-          );
-        })
-        .catch((error) => {
-          logger.error(`Error: ${error}`);
+      try {
+        // act
+        const result = await push({
+          files: argv.source.split(','),
+          provider: await getProvider(argv),
+          destPathPrefix: argv.prefix,
+          logger,
+          concurrency: argv.concurrency,
+          makePublic: argv.public,
+          onlyUploadChanges: !argv.force,
         });
+
+        logger.info(
+          `Finished in ${Math.round((Date.now() - startTime) / 1000)}s. (Uploaded ${
+            result.uploadedKeys.length
+          }. Deleted ${result.deletedKeys.length}. Skipped ${result.skippedKeys.length}.)`,
+        );
+      } catch (error: any) {
+        logger.error(`Error: ${error}`);
+      }
     },
   )
   .option('concurrency', {

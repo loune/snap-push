@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import uploadFileFactory from './s3';
+import uploadFileFactory from './s3.js';
 
 jest.setTimeout(10000);
 

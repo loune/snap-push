@@ -121,7 +121,7 @@ async function readChars(filename: string, numOfChars: number): Promise<string> 
 
 export default async function getFileMimeType(
   filename: string,
-  customMimeTypes?: Record<string, string[]> | undefined,
+  customMimeTypes?: Record<string, string[]>,
 ): Promise<string | undefined> {
   const extension = filename.substring(filename.lastIndexOf('.') + 1);
 
@@ -143,11 +143,11 @@ export default async function getFileMimeType(
     try {
       const chars = await readChars(filename, 200);
       const charsLower = chars.toLowerCase();
-      if (charsLower.indexOf('<html>') !== -1 || charsLower.indexOf('<!doctype html>') !== -1) {
+      if (charsLower.includes('<html>') || charsLower.includes('<!doctype html>')) {
         type = standardExtContentTypeMap.get('html')?.[0];
       }
       // eslint-disable-next-line no-empty
-    } catch (err) {}
+    } catch {}
   }
 
   return type;

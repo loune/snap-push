@@ -89,7 +89,7 @@ test('azure uploadFile', async () => {
         resolve(Buffer.concat(buffers).toString());
       });
       downloadBlockBlobResponse.readableStreamBody?.on('error', (err) => {
-        reject(err);
+        reject(err as Error);
       });
     });
     expect(streamString).toBe(fs.readFileSync(testFile).toString());

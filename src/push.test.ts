@@ -7,11 +7,11 @@ import { Storage } from '@google-cloud/storage';
 import fg from 'fast-glob';
 import { StorageSharedKeyCredential, BlobServiceClient, BlobItem } from '@azure/storage-blob';
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import push, { pathTrimStart } from './push';
-import s3FileProvider from './s3';
-import azureFileProvider from './azure';
-import gcpFileProvider from './gcp';
-import { UploadFileProvider, UploadFile, AbstractLogger, UploadArgs } from './types';
+import push, { pathTrimStart } from './push.js';
+import s3FileProvider from './s3.js';
+import azureFileProvider from './azure.js';
+import gcpFileProvider from './gcp.js';
+import { UploadFileProvider, UploadFile, AbstractLogger, UploadArgs } from './types.js';
 
 const s3TestBucketName = 'pouch-test';
 
