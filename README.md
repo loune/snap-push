@@ -21,25 +21,19 @@
 ### For Amazon S3 (or compatible services such as Cloudflare R2, MinIO)
 
 ```bash
-yarn add snap-push @aws-sdk/client-s3 @aws-sdk/lib-storage
-```
-
-or use npm
-
-```bash
 npm install snap-push @aws-sdk/client-s3 @aws-sdk/lib-storage
 ```
 
 ### For Azure Storage
 
 ```bash
-yarn add snap-push @azure/storage-blob
+npm install snap-push @azure/storage-blob
 ```
 
 ### For Google Cloud Storage
 
 ```bash
-yarn add snap-push @google-cloud/storage
+npm install snap-push @google-cloud/storage
 ```
 
 ## Basic Usage
@@ -71,10 +65,7 @@ import s3FileProvider from 'snap-push/s3';
 Code
 
 ```js
-const providerOptions = {
-  bucket: 'example-bucket',
-  region: 'ap-southeast-2',
-};
+const providerOptions = { bucket: 'example-bucket', region: 'ap-southeast-2' };
 
 (async () => {
   const result = await push({
@@ -108,10 +99,7 @@ Code
 
 ```typescript
 const providerOptions: AzureProviderOptions = {
-  credential: new StorageSharedKeyCredential(
-    'my-account-name',
-    'my-account-key'
-  ),
+  credential: new StorageSharedKeyCredential('my-account-name', 'my-account-key'),
   serviceUrl: `https://myaccount.blob.core.windows.net/`,
   containerName: `my-test-container`,
 };
@@ -147,9 +135,7 @@ import gcpFileProvider from 'snap-push/gcp';
 Code
 
 ```js
-const providerOptions = {
-  bucket: 'example-bucket'
-};
+const providerOptions = { bucket: 'example-bucket' };
 
 (async () => {
   const result = await push({
@@ -186,10 +172,7 @@ const providerOptions = {
   bucket: 'example-bucket',
   region: 'auto',
   endpoint: `https://my-region-endpoint.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: 'my-account-key',
-    secretAccessKey: 'my-secret-access-key',
-  },
+  credentials: { accessKeyId: 'my-account-key', secretAccessKey: 'my-secret-access-key' },
 };
 
 (async () => {
@@ -217,11 +200,7 @@ const result = await push({
   currentWorkingDirectory: 'dist',
   files: './**/*',
   makePublic: true,
-  encoding: {
-    fileExtensions: ['txt', 'html'],
-    mimeTypes: [/text/, /xml/],
-    contentEncodings: ['raw', 'br', 'gzip'],
-  },
+  encoding: { fileExtensions: ['txt', 'html'], mimeTypes: [/text/, /xml/], contentEncodings: ['raw', 'br', 'gzip'] },
   provider: s3FileProvider(providerOptions),
 });
 ```
@@ -234,12 +213,7 @@ const result = await push({
   files: './**/*',
   makePublic: true,
   encoding: (fileName) => {
-    return [
-      {
-        destFileName: fileName,
-        encoding: 'gzip',
-      },
-    ];
+    return [{ destFileName: fileName, encoding: 'gzip' }];
   },
   provider: s3FileProvider(providerOptions),
 });

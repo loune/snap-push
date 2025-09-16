@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { StorageSharedKeyCredential, BlobServiceClient } from '@azure/storage-blob';
 import uploadFileFactory, { AzureProviderOptions } from './azure.js';
 
@@ -9,8 +9,10 @@ test('azure uploadFile', async () => {
   try {
     fs.mkdirSync('azurite');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('node', [
-    'node_modules/.bin/azurite-blob',
+  const azurite = spawn('npm', [
+    'run',
+    'azurite',
+    '--',
     '--silent',
     '--location',
     'azurite',
@@ -105,8 +107,13 @@ test('azure uploadFile', async () => {
     await containerClient.delete();
   } finally {
     if (azurite.pid) {
-      spawnSync('kill', ['-9', azurite.pid.toString()]);
+      try {
+        process.kill(azurite.pid, 'SIGTERM');
+      } catch (err) {
+        console.warn('Failed to kill azurite process:', err);
+      }
     }
+
     await azuriteEnd;
   }
 });

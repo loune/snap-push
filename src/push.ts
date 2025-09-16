@@ -89,11 +89,7 @@ export interface PushResult {
   errorKeys: string[];
 }
 
-const encodingExtensionsMap: Record<string, string> = {
-  raw: '',
-  gzip: '.gz',
-  br: '.br',
-};
+const encodingExtensionsMap: Record<string, string> = { raw: '', gzip: '.gz', br: '.br' };
 
 async function getMD5(fileName: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -299,9 +295,7 @@ export default async function push({
             ? encodingOption(destKey, contentLength, contentType)
             : getFileEncodingKeys(destKey, getFileEncodings(encodingOption, destKey, contentLength, contentType));
 
-        if (encodedFileMap === undefined) {
-          encodedFileMap = getFileEncodingKeys(destKey, ['raw']);
-        }
+        encodedFileMap ??= getFileEncodingKeys(destKey, ['raw']);
 
         processedKeys.push(...encodedFileMap.map((fileNameEnc) => fileNameEnc.destFileName));
         const existingFile = existingFilesMap.get(destKey);
@@ -369,12 +363,5 @@ export default async function push({
     );
   }
 
-  return {
-    elasped: Date.now() - startTime,
-    uploadedFiles,
-    uploadedKeys,
-    deletedKeys,
-    skippedKeys,
-    errorKeys,
-  };
+  return { elasped: Date.now() - startTime, uploadedFiles, uploadedKeys, deletedKeys, skippedKeys, errorKeys };
 }

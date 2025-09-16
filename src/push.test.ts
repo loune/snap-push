@@ -1,5 +1,5 @@
 import { Writable, WritableOptions } from 'stream';
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -75,7 +75,12 @@ class Md5LengthStream extends Writable {
           callback(err);
           return;
         }
-        this.decodedMd5.write(result, this.enc, (md5err) => {
+        const enc = this.enc;
+        if (!enc) {
+          callback(new Error('No encoding this.enc is undefined.'));
+          return;
+        }
+        this.decodedMd5.write(result, enc, (md5err) => {
           if (md5err) {
             callback(md5err);
             return;
@@ -316,9 +321,7 @@ test('pretend to upload files to mock file provider with dryRun', async () => {
     tags: (fileName) => ({ tagFN: fileName }),
     dryRun: true,
     logger,
-    mimeTypes: {
-      'application/typescript': ['ts'],
-    },
+    mimeTypes: { 'application/typescript': ['ts'] },
   });
 
   // assert
@@ -447,11 +450,7 @@ test('upload files to mock file provider', async () => {
   const provider = getMockProvider(initialFiles);
 
   // act
-  const result = await push({
-    files: pat,
-    provider,
-    tags: (fileName) => ({ tagFN: fileName }),
-  });
+  const result = await push({ files: pat, provider, tags: (fileName) => ({ tagFN: fileName }) });
 
   // assert
   expect(result.uploadedFiles).toEqual(expect.arrayContaining(['src/cli.ts', 'src/s3.ts']));
@@ -489,10 +488,7 @@ test('push with s3', async () => {
     provider: s3FileProvider(providerOptions),
     destPathPrefix: prefix,
     onlyUploadChanges: false,
-    tags: {
-      Test: 'test string 1',
-      Test2: 'test string 2',
-    },
+    tags: { Test: 'test string 1', Test2: 'test string 2' },
     logger: new MockLogger(true),
   });
 
@@ -515,39 +511,46 @@ test('push with s3', async () => {
 });
 
 test('push with azure', async () => {
+  let azurite: ReturnType<typeof spawn> | null = null;
+  let azuriteEnd: Promise<void> | null = null;
+
   try {
     fs.mkdirSync('azurite2');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('node', [
-    'node_modules/.bin/azurite-blob',
-    '--silent',
-    '--location',
-    'azurite2',
-    '--loose',
-    '--blobPort',
-    '39878',
-  ]);
-
-  azurite.stdout.on('data', (data) => {
-    console.log(`azurite stdout: ${data}`);
-  });
-
-  azurite.stderr.on('data', (data) => {
-    console.error(`azurite stderr: ${data}`);
-  });
-
-  const azuriteEnd = new Promise<void>((resolve) => {
-    azurite.on('close', (code) => {
-      console.log(`azurite exited with code ${code}`);
-      resolve();
-    });
-  });
-
-  await new Promise((r) => {
-    setTimeout(r, 4000);
-  });
 
   try {
+    azurite = spawn('npm', [
+      'run',
+      'azurite',
+      '--',
+      '--silent',
+      '--location',
+      'azurite2',
+      '--loose',
+      '--blobPort',
+      '39878',
+    ]);
+
+    azurite.stdout?.on('data', (data: Buffer) => {
+      console.log(`azurite stdout: ${data.toString()}`);
+    });
+
+    azurite.stderr?.on('data', (data: Buffer) => {
+      console.error(`azurite stderr: ${data.toString()}`);
+    });
+
+    azuriteEnd = new Promise<void>((resolve) => {
+      azurite?.on('close', (code: number | null) => {
+        console.log(`azurite exited with code ${code}`);
+        resolve();
+      });
+    });
+
+    // Wait longer for azurite to fully start
+    await new Promise((resolve) => {
+      setTimeout(resolve, 6000);
+    });
+
     const prefix = `__snap-push-test${Date.now()}/`;
     // test with azurite
     const accountName = 'devstoreaccount1';
@@ -569,40 +572,46 @@ test('push with azure', async () => {
 
     await containerClient.create();
 
-    // act
-    const result = await push({
-      files: pat,
-      provider: azureFileProvider(providerOptions),
-      destPathPrefix: prefix,
-      onlyUploadChanges: false,
-      tags: {
-        Test: 'test string 1',
-        Test2: 'test string 2',
-      },
-    });
+    try {
+      // act
+      const result = await push({
+        files: pat,
+        provider: azureFileProvider(providerOptions),
+        destPathPrefix: prefix,
+        onlyUploadChanges: false,
+        tags: { Test: 'test string 1', Test2: 'test string 2' },
+      });
 
-    // assert
-    expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
-    expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
-    expect(result.elasped).toBeGreaterThan(0);
+      // assert
+      expect(result.uploadedFiles.sort()).toEqual(filesFromPat.map(pathTrimStart).sort());
+      expect(result.uploadedKeys.sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
+      expect(result.elasped).toBeGreaterThan(0);
 
-    const blobs: BlobItem[] = [];
-    const listBlobsResponse = containerClient.listBlobsFlat();
+      const blobs: BlobItem[] = [];
+      const listBlobsResponse = containerClient.listBlobsFlat();
 
-    for await (const blob of listBlobsResponse) {
-      blobs.push(blob);
+      for await (const blob of listBlobsResponse) {
+        blobs.push(blob);
+      }
+
+      expect(blobs.map((x) => x.name).sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
+      expect(blobs.map((x) => x.name).sort()).toEqual(result.uploadedKeys.sort());
+    } finally {
+      // cleanup
+      await containerClient.delete();
     }
-
-    expect(blobs.map((x) => x.name).sort()).toEqual(filesFromPat.map((x) => `${prefix}${pathTrimStart(x)}`).sort());
-    expect(blobs.map((x) => x.name).sort()).toEqual(result.uploadedKeys.sort());
-
-    // cleanup
-    await containerClient.delete();
   } finally {
-    if (azurite.pid) {
-      spawnSync('kill', ['-9', azurite.pid.toString()]);
+    if (azurite?.pid) {
+      try {
+        process.kill(azurite.pid, 'SIGTERM');
+      } catch (err) {
+        console.warn('Failed to kill azurite process:', err);
+      }
     }
-    await azuriteEnd;
+
+    if (azuriteEnd) {
+      await azuriteEnd;
+    }
   }
 });
 
