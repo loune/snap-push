@@ -34,8 +34,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm run lint && echo warm up azurite: && npm run azurite -- --version && env-cmd --silent jest --detectOpenHandles --coverage",
-    "azurite": "npx -y azurite@3.35.0",
+    "test": "npm run lint && echo install azurite temporarily && npm install --save-optional azurite && azurite-blob --version && env-cmd --silent jest --detectOpenHandles --coverage",
     "lint": "eslint src",
     "build": "rimraf dist-esm dist-cjs dist-types && tsc -b ./tsconfig.esm.json ./tsconfig.cjs.json ./tsconfig.types.json && chmod +x dist-esm/cli.js && echo '{\"type\": \"commonjs\"}' > ./dist-cjs/package.json",
     "prepublish": "npm run build",

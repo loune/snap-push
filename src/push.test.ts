@@ -519,10 +519,8 @@ test('push with azure', async () => {
   } catch {} // eslint-disable-line no-empty
 
   try {
-    azurite = spawn('npm', [
-      'run',
-      'azurite',
-      '--',
+    azurite = spawn('node', [
+      './node_modules/.bin/azurite-blob', // only spawn the blob service
       '--silent',
       '--location',
       'azurite2',

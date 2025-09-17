@@ -9,10 +9,8 @@ test('azure uploadFile', async () => {
   try {
     fs.mkdirSync('azurite');
   } catch {} // eslint-disable-line no-empty
-  const azurite = spawn('npm', [
-    'run',
-    'azurite',
-    '--',
+  const azurite = spawn('node', [
+    './node_modules/.bin/azurite-blob', // only spawn the blob service
     '--silent',
     '--location',
     'azurite',
